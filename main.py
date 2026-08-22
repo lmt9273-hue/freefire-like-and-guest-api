@@ -22,7 +22,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # === CONFIG ===
-BOT_TOKEN = "8868364202:AAGBfPlrPeJOHOSOxgYXJGYFmZnN_ZlaiQs"
+BOT_TOKEN = "8868364202:AAEVRd3NQYm-vxj73TUGuY7MA1a4krmo0yk"
+
 
 
 if not BOT_TOKEN:
