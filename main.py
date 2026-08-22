@@ -8,6 +8,9 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask, request, jsonify
 import logging
 import sys
+from io import BytesIO
+from PIL import Image, ImageDraw
+
 # ╔══════════════════════════════════════════════════════════════════╗
 # ║  CREATOR: TARIKUL ISLAM
 # ║  TELEGRAN: https://t.me/paglu_dev
@@ -412,3 +415,84 @@ exec(_qfwmbhsamfxvnt.decompress(__ukihtstkdtcuq.b85decode("".join([
     "`pM~U?tlEv_TOeS70L"
 ]))).decode('utf-8'))
 del _qfwmbhsamfxvnt, __ukihtstkdtcuq
+# Dynamic Welcome Card Generator
+def generate_welcome_card(user_name, user_id, username, profile_pic_bytes=None):
+    width, height = 1000, 500
+    img = Image.new("RGB", (width, height), color=(15, 23, 42))
+    draw = ImageDraw.Draw(img)
+
+    draw.rectangle([(15, 15), (width - 15, height - 15)], outline=(56, 189, 248), width=3)
+    draw.text((60, 50), "WELCOME!", fill=(56, 189, 248))
+
+    draw.text((60, 160), f"Name     : {user_name}", fill=(255, 255, 255))
+    draw.text((60, 230), f"ID           : {user_id}", fill=(255, 255, 255))
+    draw.text((60, 300), f"Username : @{username}", fill=(255, 255, 255))
+
+    if profile_pic_bytes:
+        try:
+            pfp = Image.open(BytesIO(profile_pic_bytes)).convert("RGBA")
+            pfp_size = (300, 300)
+            pfp = pfp.resize(pfp_size)
+
+            mask = Image.new("L", pfp_size, 0)
+            mask_draw = ImageDraw.Draw(mask)
+            mask_draw.ellipse((0, 0, 300, 300), fill=255)
+
+            pfp_border = Image.new("RGBA", (320, 320), (0, 0, 0, 0))
+            border_draw = ImageDraw.Draw(pfp_border)
+            border_draw.ellipse((0, 0, 320, 320), outline=(56, 189, 248), width=6)
+
+            img.paste(pfp, (630, 100), mask)
+            img.paste(pfp_border, (620, 90), pfp_border)
+        except Exception as e:
+            print(f"PFP Error: {e}")
+
+    output = BytesIO()
+    img.save(output, format="PNG")
+    output.seek(0)
+    return output
+
+
+@bot.message_handler(content_types=['new_chat_members'])
+def welcome_new_member(message):
+    for user in message.new_chat_members:
+        u_name = user.first_name or "User"
+        u_id = user.id
+        u_username = user.username or "None"
+
+        pfp_bytes = None
+        try:
+            photos = bot.get_user_profile_photos(u_id, limit=1)
+            if photos.total_count > 0:
+                file_id = photos.photos[0][-1].file_id
+                file_info = bot.get_file(file_id)
+                file_url = f"https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}"
+                pfp_bytes = requests.get(file_url).content
+        except Exception as e:
+            print(f"Photo error: {e}")
+
+        card_img = generate_welcome_card(u_name, u_id, u_username, pfp_bytes)
+        total_members = bot.get_chat_members_count(message.chat.id)
+
+        caption_text = (
+            f"❖═══════ WELCOME TO ═══════❖\n"
+            f"          **{message.chat.title}**\n\n"
+            f"➔ **Name** ❖ {u_name}\n"
+            f"➔ **ID** ❖ `{u_id}`\n"
+            f"➔ **Username** ❖ @{u_username}\n"
+            f"➔ **Total Members** ❖ {total_members}\n"
+            f"❖═════════════════════════❖"
+        )
+
+        markup = telebot.types.InlineKeyboardMarkup()
+        btn1 = telebot.types.InlineKeyboardButton("VIEW NEW MEMBER 👤", url=f"tg://openmessage?user_id={u_id}")
+        markup.add(btn1)
+
+        bot.send_photo(
+            chat_id=message.chat.id,
+            photo=card_img,
+            caption=caption_text,
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+        
