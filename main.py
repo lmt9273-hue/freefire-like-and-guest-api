@@ -297,7 +297,8 @@ def help_command(message):
             f"🆘 `/help` - Show this help menu\n\n"
             f"👑 *Owner Commands:*\n"
             f"📈 `/remain` - Show all users' usage & stats\n\n"
-            f"📞 *Support:* {@rohit2848}"
+            "📞 *Support:* @rohit2848"
+            
         )
         bot.reply_to(message, help_text, parse_mode="Markdown")
         return
