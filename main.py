@@ -27,11 +27,14 @@ if not BOT_TOKEN:
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7128817223
 OWNER_USERNAME = "@rohit2848"
-UPI_ID = "your-upi-id@okaxis"  # 👈 Apni UPI ID yahan dalein
+
+# Aapki Sahi UPI ID & QR Code Image Link
+UPI_ID = "7605900368@fam"  
+QR_CODE_URL = "https://i.ibb.co/3s682Hn/61380.jpg"  # 👈 Aapka QR Code Image URL
 
 bot = telebot.TeleBot(BOT_TOKEN)
 like_tracker = {}   
-user_database = set()  # Global user tracking for Broadcast & Welcome
+user_database = set()  # Global user tracking
 
 # === DATA RESET ===
 def reset_limits():
@@ -127,27 +130,34 @@ def profile_click(message):
     )
     bot.send_message(message.chat.id, profile_text, parse_mode="Markdown")
 
-# === PAYMENT / VIP SYSTEM ===
+# === PAYMENT / VIP SYSTEM (WITH QR CODE & UPDATED UPI) ===
 @bot.message_handler(func=lambda message: message.text == "💎 BUY VIP / PREMIUM")
 def buy_vip_click(message):
     text = (
         "💎 **VIP & PREMIUM PLANS**\n\n"
         "🚀 **Benefits:**\n"
         "• Unlimited Daily Likes\n"
-        "• No Daily Wait Limits\n"
-        "• High Priority API Processing\n\n"
+        "• Instant API Processing\n"
+        "• Priority Support\n\n"
         "💳 **Pricing:**\n"
         "• 1 Day VIP: ₹20\n"
         "• 7 Days VIP: ₹100\n"
         "• Monthly VIP: ₹300\n\n"
         f"📌 **UPI ID:** `{UPI_ID}`\n\n"
-        "📸 **How to Buy:**\n"
-        "Pay on the UPI ID above and send the payment screenshot along with your User ID to the Owner."
+        "📸 **How to Pay:**\n"
+        "1. Scan the QR code above or copy the UPI ID.\n"
+        "2. Make payment and take a screenshot.\n"
+        "3. Click below to send proof along with your User ID to Owner!"
     )
     markup = InlineKeyboardMarkup()
     btn = InlineKeyboardButton("📩 Send Proof to Owner", url=f"https://t.me/{OWNER_USERNAME.strip('@')}")
     markup.add(btn)
-    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
+    
+    # Sends QR Code image along with payment instructions
+    try:
+        bot.send_photo(message.chat.id, photo=QR_CODE_URL, caption=text, reply_markup=markup, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
 # === FREE LIKES & REGION ===
 @bot.message_handler(func=lambda message: message.text == "⭐ FREE LIKES")
