@@ -31,7 +31,6 @@ if not BOT_TOKEN:
     sys.exit(1)
 
 REQUIRED_CHANNELS = ["@hacklinkpc"]
-REQUIRED_CHANNELS = []
 OWNER_ID = 7128817223
 OWNER_USERNAME = "@rohit2848"
 
