@@ -4,3 +4,4 @@ pycryptodome
 pyTelegramBotAPI
 flask
 requests
+pillow
