@@ -186,7 +186,9 @@ def process_user_uid(message, region):
     threading.Thread(target=process_like, args=(message, region, uid)).start()
 
 @bot.message_handler(func=lambda message: message.text == "🔙 Back")
-def back_menu(message)
+def back_menu(message):
+    
+    
 # Handle REFER Button
 @bot.message_handler(func=lambda message: message.text == "👥 REFER")
 def refer_click(message):
