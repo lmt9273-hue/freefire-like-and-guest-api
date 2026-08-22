@@ -144,12 +144,6 @@ def handle_like(message):
     chat_id = message.chat.id
     args = message.text.split()
 
-    # Only allow in groups, not in private messages (except owner)
-    if message.chat.type == "private" and message.from_user.id != OWNER_ID:
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("🔗 Join Official Group", url=GROUP_JOIN_LINK))
-        bot.reply_to(message, "❌ Sorry! command is not allowed here.\n\nJoin our official group:", reply_markup=markup)
-        return
 
     if not is_user_in_channel(user_id):
         markup = InlineKeyboardMarkup()
