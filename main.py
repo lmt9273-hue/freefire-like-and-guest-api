@@ -123,45 +123,72 @@ def webhook():
 
 
 # === TELEGRAM COMMANDS
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
+
+# Main Menu Keyboard
+def main_menu():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        KeyboardButton("⭐ FREE LIKES"),
+        KeyboardButton("👥 REFER"),
+        KeyboardButton("👑 OWNER")
+    )
+    return markup
+
+# Region Selection Keyboard
+def region_menu():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
+    markup.add(
+        KeyboardButton("IND 🇮🇳"), KeyboardButton("BR 🇧🇷"), KeyboardButton("US 🇺🇸"),
+        KeyboardButton("SG 🇸🇬"), KeyboardButton("RU 🇷🇺"), KeyboardButton("ID 🇮🇩"),
+        KeyboardButton("🔙 Back")
+    )
+    return markup
+
+# Start Command
 @bot.message_handler(commands=['start'])
 def start_command(message):
-    user_id = message.from_user.id
-    if not is_user_in_channel(user_id):
-        markup = InlineKeyboardMarkup()
-        for channel in REQUIRED_CHANNELS:
-            markup.add(InlineKeyboardButton(f"🔗 Join {channel}", url=f"https://t.me/{channel.strip('@')}") )
-        bot.reply_to(message, "📢 Channel Membership Required\nTo use this bot, you must join all our channels first", reply_markup=markup, parse_mode="Markdown")
-        return
-    if user_id not in like_tracker:
-        like_tracker[user_id] = {"used": 0, "last_used": datetime.now() - timedelta(days=1)}
-    bot.reply_to(message, "✅ You're verified! Use /like to send likes.", parse_mode="Markdown")
+    welcome_text = (
+        "✨ **Welcome, Brooo!**\n\n"
+        "🎒 **I'm REFER AND EARN LIKES BOT!**\n"
+        "⚡ Get Free Likes quickly and easily!\n"
+        " Simple, Fast & Reliable Service\n"
+        " Tap An Option Below To Begin!"
+    )
+    bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu(), parse_mode="Markdown")
 
+# Handle Free Likes Button
+@bot.message_handler(func=lambda message: message.text == "⭐ FREE LIKES")
+def free_likes_click(message):
+    text = (
+        "💖 **FREE LIKES**\n\n"
+        "🚀 *Get Up To 20 Free Likes 100% FREE!*\n"
+        "📍 Select Your Region To Continue."
+    )
+    bot.send_message(message.chat.id, text, reply_markup=region_menu(), parse_mode="Markdown")
 
-@bot.message_handler(commands=['like'])
-def handle_like(message):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-    args = message.text.split()
+# Handle Region Selection & Ask for UID
+@bot.message_handler(func=lambda message: message.text in ["IND 🇮🇳", "BR 🇧🇷", "US 🇺🇸", "SG 🇸🇬", "RU 🇷🇺", "ID 🇮🇩"])
+def ask_uid(message):
+    region = message.text.split()[0]
+    text = f"🌐 **Region:** {region}\n🎯 **Free Fire UID Required**\n📝 *Please Enter Your UID Below:*"
+    msg = bot.send_message(message.chat.id, text)
+    bot.register_next_step_handler(msg, process_user_uid, region)
 
-
-    if not is_user_in_channel(user_id):
-        markup = InlineKeyboardMarkup()
-        for channel in REQUIRED_CHANNELS:
-            markup.add(InlineKeyboardButton(f"🔗 Join {channel}", url=f"https://t.me/{channel.strip('@')}") )
-        bot.reply_to(message, "❌ You must join all our channels to use this command.", reply_markup=markup, parse_mode="Markdown")
-        return
-
-    if len(args) != 3:
-        bot.reply_to(message, "❌ Format: `/like server_name uid`", parse_mode="Markdown")
-        return
-
-    region, uid = args[1], args[2]
-    if not region.isalpha() or not uid.isdigit():
-        bot.reply_to(message, "⚠️ Invalid input. Use: `/like server_name uid`", parse_mode="Markdown")
+def process_user_uid(message, region):
+    uid = message.text.strip()
+    if not uid.isdigit():
+        bot.send_message(message.chat.id, "❌ Invalid UID! Numbers only.", reply_markup=main_menu())
         return
 
+    bot.send_message(message.chat.id, f"🔄 **Sending Free Likes...**\n🆔 UID: {uid}\n🌐 Region: {region}")
     threading.Thread(target=process_like, args=(message, region, uid)).start()
+
+@bot.message_handler(func=lambda message: message.text == "🔙 Back")
+def back_menu(message):
+    bot.send_message(message.chat.id, "🔙 Main Menu", reply_markup=main_menu())
+    
 
 
 def process_like(message, region, uid):
@@ -270,7 +297,7 @@ def help_command(message):
             f"🆘 `/help` - Show this help menu\n\n"
             f"👑 *Owner Commands:*\n"
             f"📈 `/remain` - Show all users' usage & stats\n\n"
-            f"📞 *Support:* {OWNER_USERNAME}"
+            f"📞 *Support:* {@rohit2848}"
         )
         bot.reply_to(message, help_text, parse_mode="Markdown")
         return
