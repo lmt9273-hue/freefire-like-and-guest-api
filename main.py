@@ -28,13 +28,13 @@ REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7128817223
 OWNER_USERNAME = "@rohit2848"
 
-# Aapki Sahi UPI ID & QR Code Image Link
+# Sahi UPI ID & Direct Image Direct Stream URL
 UPI_ID = "7605900368@fam"  
-QR_CODE_URL = "https://i.ibb.co/3s682Hn/61380.jpg"  # 👈 Aapka QR Code Image URL
+QR_CODE_URL = "https://i.ibb.co/3s682Hn/61380.jpg"  
 
 bot = telebot.TeleBot(BOT_TOKEN)
 like_tracker = {}   
-user_database = set()  # Global user tracking
+user_database = set()  
 
 # === DATA RESET ===
 def reset_limits():
@@ -75,7 +75,7 @@ def call_api(region, uid):
 def get_user_limit(user_id):
     if user_id == OWNER_ID:
         return 999999999  
-    return 1  # Standard limit for free users
+    return 1  
 
 # === KEYBOARDS ===
 def main_menu():
@@ -130,7 +130,7 @@ def profile_click(message):
     )
     bot.send_message(message.chat.id, profile_text, parse_mode="Markdown")
 
-# === PAYMENT / VIP SYSTEM (WITH QR CODE & UPDATED UPI) ===
+# === PAYMENT / VIP SYSTEM ===
 @bot.message_handler(func=lambda message: message.text == "💎 BUY VIP / PREMIUM")
 def buy_vip_click(message):
     text = (
@@ -153,9 +153,12 @@ def buy_vip_click(message):
     btn = InlineKeyboardButton("📩 Send Proof to Owner", url=f"https://t.me/{OWNER_USERNAME.strip('@')}")
     markup.add(btn)
     
-    # Sends QR Code image along with payment instructions
     try:
-        bot.send_photo(message.chat.id, photo=QR_CODE_URL, caption=text, reply_markup=markup, parse_mode="Markdown")
+        img_resp = requests.get(QR_CODE_URL, timeout=10)
+        if img_resp.status_code == 200:
+            bot.send_photo(message.chat.id, photo=img_resp.content, caption=text, reply_markup=markup, parse_mode="Markdown")
+        else:
+            bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
     except Exception:
         bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
@@ -401,3 +404,4 @@ def welcome_new_member(message):
 if __name__ == "__main__":
     print("Bot is running in Polling Mode...")
     bot.infinity_polling(skip_pending=True)
+    
