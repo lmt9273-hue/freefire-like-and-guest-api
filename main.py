@@ -186,7 +186,32 @@ def process_user_uid(message, region):
     threading.Thread(target=process_like, args=(message, region, uid)).start()
 
 @bot.message_handler(func=lambda message: message.text == "🔙 Back")
-def back_menu(message):
+def back_menu(message)
+# Handle REFER Button
+@bot.message_handler(func=lambda message: message.text == "👥 REFER")
+def refer_click(message):
+    bot_username = bot.get_me().username
+    user_id = message.from_user.id
+    ref_link = f"https://t.me/{bot_username}?start={user_id}"
+    
+    text = (
+        "👥 **REFER AND EARN**\n\n"
+        "📢 Share your referral link with friends to earn free likes!\n\n"
+        f"🔗 **Your Referral Link:**\n`{ref_link}`"
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+# Handle OWNER Button
+@bot.message_handler(func=lambda message: message.text == "👑 OWNER")
+def owner_click(message):
+    text = (
+        "👑 **BOT OWNER INFO**\n\n"
+        "👤 **Owner Username:** @rohit2848\n"
+        f"🆔 **Owner Numeric ID:** `{OWNER_ID}`\n\n"
+        "💬 Contact the owner for any assistance!"
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    
     bot.send_message(message.chat.id, "🔙 Main Menu", reply_markup=main_menu())
     
 
