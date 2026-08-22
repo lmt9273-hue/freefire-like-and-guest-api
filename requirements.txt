@@ -2,3 +2,5 @@ httpx
 protobuf
 pycryptodome
 pyTelegramBotAPI
+flask
+requests
