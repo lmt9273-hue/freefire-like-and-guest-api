@@ -185,9 +185,10 @@ def process_user_uid(message, region):
     bot.send_message(message.chat.id, f"🔄 **Sending Free Likes...**\n🆔 UID: {uid}\n🌐 Region: {region}")
     threading.Thread(target=process_like, args=(message, region, uid)).start()
 
- @bot.message_handler(func=lambda message: message.text == "🔙 Back")
+@bot.message_handler(func=lambda message: message.text == "🔙 Back")
 def back_menu(message):
     bot.send_message(message.chat.id, "🔙 Main Menu", reply_markup=main_menu())
+    
     
 # Handle REFER Button
 
