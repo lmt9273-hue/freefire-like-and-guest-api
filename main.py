@@ -4,17 +4,11 @@ import requests
 import time
 import threading
 from datetime import datetime, timedelta
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 import logging
 import sys
 from io import BytesIO
 from PIL import Image, ImageDraw
-
-# ╔══════════════════════════════════════════════════════════════════╗
-# ║  CREATOR: TARIKUL ISLAM
-# ║  TELEGRAN: https://t.me/paglu_dev
-# ║  PERSONAL TELEGRAM: https://t.me/itzpaglu
-# ╚══════════════════════════════════════════════════════════════════╝
 
 # Configure logging
 logging.basicConfig(
@@ -27,36 +21,34 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = "8868364202:AAEVRd3NQYm-vxj73TUGuY7MA1a4krmo0yk"
 
 if not BOT_TOKEN:
-    logger.error("❌ BOT_TOKEN not found! Please set your bot token in environment variables.")
+    logger.error("❌ BOT_TOKEN not found!")
     sys.exit(1)
 
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7128817223
 OWNER_USERNAME = "@rohit2848"
+UPI_ID = "your-upi-id@okaxis"  # 👈 Apni UPI ID yahan dalein
 
 bot = telebot.TeleBot(BOT_TOKEN)
-like_tracker = {}   # in-memory cache
+like_tracker = {}   
+user_database = set()  # Global user tracking for Broadcast & Welcome
 
 # === DATA RESET ===
-
 def reset_limits():
-    """Daily reset of usage tracker (in-memory only)."""
     while True:
         try:
-            # Calculate time until next 00:00 UTC
             now_utc = datetime.utcnow()
             next_reset = (now_utc + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
             sleep_seconds = (next_reset - now_utc).total_seconds()
-
             time.sleep(sleep_seconds)
             like_tracker.clear()
-            logger.info("✅ Daily limits reset at 00:00 UTC (in-memory).")
+            logger.info("✅ Daily limits reset at 00:00 UTC.")
         except Exception as e:
-            logger.error(f"Error in reset_limits thread: {e}")
+            logger.error(f"Error in reset thread: {e}")
 
+threading.Thread(target=reset_limits, daemon=True).start()
 
-# === UTILS (unchanged logic) ===
-
+# === UTILS ===
 def is_user_in_channel(user_id):
     try:
         for channel in REQUIRED_CHANNELS:
@@ -65,47 +57,36 @@ def is_user_in_channel(user_id):
                 return False
         return True
     except Exception as e:
-        logger.error(f"Join check failed: {e}")
         return False
-
 
 def call_api(region, uid):
     url = f"https://freefire-like-and-guest-api-br9t.onrender.com/like?sg={region}&uid={uid}"
-
     try:
         response = requests.get(url, timeout=20)
         if response.status_code != 200:
-            return {"⚠️Invalid": " Maximum likes reached for today. Please try again tomorrow."}
+            return {"⚠️Invalid": " Maximum likes reached for today."}
         return response.json()
-    except requests.exceptions.RequestException:
-        return {"error": "API Failed. Please try again later."}
-    except ValueError:
-        return {"error": "Invalid JSON response."}
-
+    except Exception:
+        return {"error": "API Failed. Try again later."}
 
 def get_user_limit(user_id):
     if user_id == OWNER_ID:
-        return 999999999  # Unlimited for owner
-    return 1  # 1 request per day for regular users
+        return 999999999  
+    return 1  # Standard limit for free users
 
-
-# Start background thread
-threading.Thread(target=reset_limits, daemon=True).start()
-
-# === TELEGRAM COMMANDS ===
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton
-
-# Main Menu Keyboard
+# === KEYBOARDS ===
 def main_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
         KeyboardButton("⭐ FREE LIKES"),
-        KeyboardButton("👥 REFER"),
-        KeyboardButton("👑 OWNER")
+        KeyboardButton("💎 BUY VIP / PREMIUM"),
+        KeyboardButton("📊 MY PROFILE"),
+        KeyboardButton("👥 REFER & EARN"),
+        KeyboardButton("👑 OWNER"),
+        KeyboardButton("🆘 HELP")
     )
     return markup
 
-# Region Selection Keyboard
 def region_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
     markup.add(
@@ -115,34 +96,73 @@ def region_menu():
     )
     return markup
 
-# Start Command
+# === COMMANDS & HANDLERS ===
 @bot.message_handler(commands=['start'])
 def start_command(message):
+    user_id = message.from_user.id
+    user_database.add(user_id)
+    
     welcome_text = (
-        "✨ **Welcome, Brooo!**\n\n"
-        "🎒 **I'm REFER AND EARN LIKES BOT!**\n"
-        "⚡ Get Free Likes quickly and easily!\n"
-        " Simple, Fast & Reliable Service\n"
-        " Tap An Option Below To Begin!"
+        "✨ **Welcome to VIP Like Services, Leader!**\n\n"
+        "🎒 **I'm Free Fire Instant Likes Bot!**\n"
+        "⚡ Fast, Safe & 24/7 Active Bot.\n"
+        "👇 Tap an option below to get started!"
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu(), parse_mode="Markdown")
 
-# Handle Free Likes Button
+# === PROFILE BUTTON ===
+@bot.message_handler(func=lambda message: message.text == "📊 MY PROFILE")
+def profile_click(message):
+    user_id = message.from_user.id
+    usage = like_tracker.get(user_id, {"used": 0})
+    limit = get_user_limit(user_id)
+    limit_str = "Unlimited 👑" if limit > 1000 else str(limit)
+    
+    profile_text = (
+        f"👤 **YOUR PROFILE STATS**\n\n"
+        f"🆔 **User ID:** `{user_id}`\n"
+        f"📊 **Daily Requests Used:** `{usage.get('used', 0)} / {limit_str}`\n"
+        f"⚡ **Plan Status:** {'VIP Owner' if user_id == OWNER_ID else 'Free Tier'}\n\n"
+        f"💡 *Upgrade to VIP to get Unlimited Daily Likes!*"
+    )
+    bot.send_message(message.chat.id, profile_text, parse_mode="Markdown")
+
+# === PAYMENT / VIP SYSTEM ===
+@bot.message_handler(func=lambda message: message.text == "💎 BUY VIP / PREMIUM")
+def buy_vip_click(message):
+    text = (
+        "💎 **VIP & PREMIUM PLANS**\n\n"
+        "🚀 **Benefits:**\n"
+        "• Unlimited Daily Likes\n"
+        "• No Daily Wait Limits\n"
+        "• High Priority API Processing\n\n"
+        "💳 **Pricing:**\n"
+        "• 1 Day VIP: ₹20\n"
+        "• 7 Days VIP: ₹100\n"
+        "• Monthly VIP: ₹300\n\n"
+        f"📌 **UPI ID:** `{UPI_ID}`\n\n"
+        "📸 **How to Buy:**\n"
+        "Pay on the UPI ID above and send the payment screenshot along with your User ID to the Owner."
+    )
+    markup = InlineKeyboardMarkup()
+    btn = InlineKeyboardButton("📩 Send Proof to Owner", url=f"https://t.me/{OWNER_USERNAME.strip('@')}")
+    markup.add(btn)
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
+
+# === FREE LIKES & REGION ===
 @bot.message_handler(func=lambda message: message.text == "⭐ FREE LIKES")
 def free_likes_click(message):
     text = (
-        "💖 **FREE LIKES**\n\n"
-        "🚀 *Get Up To 20 Free Likes 100% FREE!*\n"
-        "📍 Select Your Region To Continue."
+        "💖 **FREE LIKES SECTION**\n\n"
+        "🚀 Select your region to claim free likes!"
     )
     bot.send_message(message.chat.id, text, reply_markup=region_menu(), parse_mode="Markdown")
 
-# Handle Region Selection & Ask for UID
 @bot.message_handler(func=lambda message: message.text in ["IND 🇮🇳", "BR 🇧🇷", "US 🇺🇸", "SG 🇸🇬", "RU 🇷🇺", "ID 🇮🇩"])
 def ask_uid(message):
     region = message.text.split()[0]
-    text = f"🌐 **Region:** {region}\n🎯 **Free Fire UID Required**\n📝 *Please Enter Your UID Below:*"
-    msg = bot.send_message(message.chat.id, text)
+    text = f"🌐 **Region:** {region}\n🎯 **Enter your Free Fire UID below:**"
+    msg = bot.send_message(message.chat.id, text, parse_mode="Markdown")
     bot.register_next_step_handler(msg, process_user_uid, region)
 
 def process_user_uid(message, region):
@@ -151,172 +171,94 @@ def process_user_uid(message, region):
         bot.send_message(message.chat.id, "❌ Invalid UID! Numbers only.", reply_markup=main_menu())
         return
 
-    bot.send_message(message.chat.id, f"🔄 **Sending Free Likes...**\n🆔 UID: {uid}\n🌐 Region: {region}")
+    bot.send_message(message.chat.id, f"🔄 **Processing Request...**\n🆔 UID: {uid}\n🌐 Region: {region}")
     threading.Thread(target=process_like, args=(message, region, uid)).start()
-
-@bot.message_handler(func=lambda message: message.text == "🔙 Back")
-def back_menu(message):
-    bot.send_message(message.chat.id, "🔙 Main Menu", reply_markup=main_menu())
-    
-# Handle REFER Button
-@bot.message_handler(func=lambda message: message.text == "👥 REFER")
-def refer_click(message):
-    bot_username = bot.get_me().username
-    user_id = message.from_user.id
-    ref_link = f"https://t.me/{bot_username}?start={user_id}"
-    
-    text = (
-        "👥 **REFER AND EARN**\n\n"
-        "📢 Share your referral link with friends to earn free likes!\n\n"
-        f"🔗 **Your Referral Link:**\n`{ref_link}`"
-    )
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
-
-# Handle OWNER Button
-@bot.message_handler(func=lambda message: message.text == "👑 OWNER")
-def owner_click(message):
-    text = (
-        "👑 **BOT OWNER INFO**\n\n"
-        "👤 **Owner Username:** @rohit2848\n"
-        f"🆔 **Owner Numeric ID:** `{OWNER_ID}`\n\n"
-        "💬 Contact the owner for any assistance!"
-    )
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
-    bot.send_message(message.chat.id, "🔙 Main Menu", reply_markup=main_menu())
 
 def process_like(message, region, uid):
     user_id = message.from_user.id
     now_utc = datetime.utcnow()
     usage = like_tracker.get(user_id, {"used": 0, "last_used": now_utc - timedelta(days=1)})
 
-    last_used_date = usage["last_used"].date()
-    current_date = now_utc.date()
-    if current_date > last_used_date:
+    if now_utc.date() > usage["last_used"].date():
         usage["used"] = 0
 
     max_limit = get_user_limit(user_id)
     if usage["used"] >= max_limit:
-        bot.reply_to(message, f"⚠️ You have exceeded your daily request limit!")
+        bot.reply_to(message, "⚠️ You have exceeded your daily limit! Upgrade to VIP for unlimited requests.")
         return
 
-    processing_msg = bot.reply_to(message, "⏳ Please wait... Sending likes...")
+    processing_msg = bot.reply_to(message, "⏳ Sending likes... Please wait...")
     response = call_api(region, uid)
 
     if "error" in response:
-        try:
-            bot.edit_message_text(
-                chat_id=processing_msg.chat.id,
-                message_id=processing_msg.message_id,
-                text=f"⚠️ API Error: {response['error']}"
-            )
-        except:
-            bot.reply_to(message, f"⚠️ API Error: {response['error']}")
+        bot.edit_message_text(chat_id=processing_msg.chat.id, message_id=processing_msg.message_id, text=f"⚠️ API Error: {response['error']}")
         return
 
     if not isinstance(response, dict) or response.get("status") != 1:
-        try:
-            bot.edit_message_text(
-                chat_id=processing_msg.chat.id,
-                message_id=processing_msg.message_id,
-                text="❌ UID has already received its max amount of likes. Limit reached for today, try another UID or after 24 hrs."
-            )
-        except:
-            bot.reply_to(message, "⚠️ Invalid UID or unable to fetch data.")
+        bot.edit_message_text(chat_id=processing_msg.chat.id, message_id=processing_msg.message_id, text="❌ Limit reached for this UID today! Try again after 24 hrs.")
         return
 
     try:
-        player_uid = str(response.get("UID", uid)).strip()
         player_name = response.get("PlayerNickname", "N/A")
-        region = str(response.get("Region", "N/A"))
-        likes_before = str(response.get("LikesbeforeCommand", "N/A"))
-        likes_after = str(response.get("LikesafterCommand", "N/A"))
         likes_given = str(response.get("LikesGivenByAPI", "N/A"))
-
-        total_like = likes_after
+        likes_after = str(response.get("LikesafterCommand", "N/A"))
 
         usage["used"] += 1
         usage["last_used"] = now_utc
         like_tracker[user_id] = usage
-        
-        response_text = f"""✅ *Request Processed Successfully*\n\n👤 *Name:* `{player_name}`\n🆔 *UID:* `{player_uid}`\n🌍 *Region:* `{region}`\n🤡 *Likes Before:* `{likes_before}`\n📈 *Likes Added:* `{likes_given}`\n🗿 *Total Likes Now:* `{total_like}`\n🔐 *Remaining Requests:* `{max_limit - usage['used']}`\n👑 *Credit:* @itzpaglu"""
 
-        markup = InlineKeyboardMarkup()
-
-        bot.edit_message_text(
-            chat_id=processing_msg.chat.id,
-            message_id=processing_msg.message_id,
-            text=response_text,
-            reply_markup=markup,
-            parse_mode="Markdown"
+        res_text = (
+            f"✅ *Request Successful!*\n\n"
+            f"👤 *Name:* `{player_name}`\n"
+            f"🆔 *UID:* `{uid}`\n"
+            f"📈 *Likes Added:* `{likes_given}`\n"
+            f"🗿 *Total Likes:* `{likes_after}`\n"
         )
-
+        bot.edit_message_text(chat_id=processing_msg.chat.id, message_id=processing_msg.message_id, text=res_text, parse_mode="Markdown")
     except Exception as e:
-        logger.error(f"Error in process_like: {e}")
-        bot.reply_to(message, "⚠️ Something went wrong. Likes Send, I can't decode your info.")
+        bot.reply_to(message, "⚠️ Something went wrong processing the request.")
 
-@bot.message_handler(commands=["remain"])
-def owner_commands(message):
+# === BACK BUTTON ===
+@bot.message_handler(func=lambda message: message.text == "🔙 Back")
+def back_menu(message):
+    bot.send_message(message.chat.id, "🔙 Main Menu", reply_markup=main_menu())
+
+# === REFER & OWNER ===
+@bot.message_handler(func=lambda message: message.text == "👥 REFER & EARN")
+def refer_click(message):
+    bot_username = bot.get_me().username
+    ref_link = f"https://t.me/{bot_username}?start={message.from_user.id}"
+    bot.send_message(message.chat.id, f"👥 **REFERRAL LINK:**\n\n`{ref_link}`\n\nShare this link to earn VIP rewards!", parse_mode="Markdown")
+
+@bot.message_handler(func=lambda message: message.text == "👑 OWNER")
+def owner_click(message):
+    bot.send_message(message.chat.id, f"👑 **BOT OWNER:** {OWNER_USERNAME}\n🆔 **ID:** `{OWNER_ID}`", parse_mode="Markdown")
+
+@bot.message_handler(func=lambda message: message.text == "🆘 HELP")
+def help_click(message):
+    bot.send_message(message.chat.id, "📖 Use **⭐ FREE LIKES** button to get instant likes, or buy VIP for unlimited access!", parse_mode="Markdown")
+
+# === BROADCAST COMMAND (OWNER ONLY) ===
+@bot.message_handler(commands=['broadcast'])
+def broadcast_msg(message):
     if message.from_user.id != OWNER_ID:
         return
-
-    args = message.text.split()
-    cmd = args[0].lower()
-
-    if cmd == "/remain":
-        lines = ["📊 *Remaining Daily Requests Per User:*"]
-        if not like_tracker:
-            lines.append("❌ No users have used the bot yet today.")
-        else:
-            for uid, usage in like_tracker.items():
-                limit = get_user_limit(uid)
-                used = usage.get("used", 0)
-                limit_str = "Unlimited" if limit > 1000 else str(limit)
-                lines.append(f"👤 `{uid}` ➜ {used}/{limit_str}")
-        bot.reply_to(message, "\n".join(lines), parse_mode="Markdown")
-
-@bot.message_handler(commands=['help'])
-def help_command(message):
-    user_id = message.from_user.id
-
-    if user_id == OWNER_ID:
-        help_text = (
-            f"📖 *Bot Commands:*\n\n"
-            f"🧑‍💻 `/like <region> <uid>` - Send likes to Free Fire UID\n"
-            f"🔰 `/start` - Start or verify\n"
-            f"🆘 `/help` - Show this help menu\n\n"
-            f"👑 *Owner Commands:*\n"
-            f"📈 `/remain` - Show all users' usage & stats\n\n"
-            "📞 *Support:* @rohit2848"
-        )
-        bot.reply_to(message, help_text, parse_mode="Markdown")
+    text = message.text.replace("/broadcast", "").strip()
+    if not text:
+        bot.reply_to(message, "❌ Please provide a message! Usage: `/broadcast Hello Users`", parse_mode="Markdown")
         return
-
-    if not is_user_in_channel(user_id):
-        markup = InlineKeyboardMarkup()
-        for channel in REQUIRED_CHANNELS:
-            markup.add(InlineKeyboardButton(f"🔗 Join {channel}", url=f"https://t.me/{channel.strip('@')}") )
-        bot.reply_to(message, "❌ You must join all our channels to use this command.", reply_markup=markup, parse_mode="Markdown")
-        return
-
-    help_text = (
-        f"📖 *Bot Commands:*\n\n"
-        f"🧑‍💻 `/like <region> <uid>` - Send likes to Free Fire UID\n"
-        f"🔰 `/start` - Start or verify\n"
-        f"🆘 `/help` - Show this help menu\n\n"
-        f"📞 *Support:* {OWNER_USERNAME}\n"
-        f"🔗 Join our channels for updates!"
-    )
-    bot.reply_to(message, help_text, parse_mode="Markdown")
-
-@bot.message_handler(func=lambda message: True, content_types=['text'])
-def reply_all(message):
-    if message.text.startswith('/'):
-        return
+    
+    count = 0
+    for uid in user_database:
+        try:
+            bot.send_message(uid, f"📢 **ANNOUNCEMENT:**\n\n{text}", parse_mode="Markdown")
+            count += 1
+        except Exception:
+            pass
+    bot.reply_to(message, f"✅ Broadcast sent to {count} users!")
 
 # ╔══════════════════════════════════════════════════════════════════╗
 # ║  ⚠️ PROTECTED SECTION - INTEGRITY VERIFIED AT RUNTIME           
-# ║  This section is multi-layer encrypted and tamper-protected.      
-# ║  Modification, decompilation, or redistribution is prohibited.
 # ║  PROTECTED BY TARIKUL ISLAM
 # ╚══════════════════════════════════════════════════════════════════╝
 import zlib as _qfwmbhsamfxvnt, base64 as __ukihtstkdtcuq
@@ -445,8 +387,7 @@ def welcome_new_member(message):
             reply_markup=markup
         )
 
-# === START POLLING ===
+# === POLLING START ===
 if __name__ == "__main__":
-    print("Bot is running in polling mode...")
+    print("Bot is running in Polling Mode...")
     bot.infinity_polling(skip_pending=True)
-            
