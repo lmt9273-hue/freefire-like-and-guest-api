@@ -74,7 +74,8 @@ def is_user_in_channel(user_id):
 
 
 def call_api(region, uid):
-    url = f"https://your-free-fire-like-api-domain/like?uid={uid}&server_name={region}"
+ url = f"https://freefire-like-and-guest-api-br9t.onrender.com/like?sg={region}&uid={uid}"
+
     try:
         response = requests.get(url, timeout=20)
         if response.status_code != 200:
