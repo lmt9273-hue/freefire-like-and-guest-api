@@ -12,27 +12,25 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
-BOT_TOKEN = "8868364202:AAHmY3fFncwmpDjDjbwCWzcg-cuq-xCNbAI"
-REQUIRED_CHANNELS = ["@hacklinkpc"]
+BOT_TOKEN = "8868364202:AAFhI1n-PJ-vS0x_OWZlpwN0k7m4GSSLRLI"
 
-# ALLOWED OWNER USERNAMES & ID
 ALLOWED_USER_ID = 7125817223  
 ALLOWED_USERNAMES = ["rohit2848", "rohitx_2848"]
 
-# Bot ON/OFF Flag
 is_bot_stopped = False
 
 UPI_ID = "7605900368@fam"
 ACCOUNT_NAME = "Amlan malik"
 
 GPLINKS_API_KEY = "B127680908b90e463b9216880b34fb36e0a6a9c6"
-BOT_USERNAME = "FreeFireIzzapiFF_BOT"
+
+# ⚠️ EXACT BOT USERNAME FOR WORKING REFERRAL LINKS
+BOT_USERNAME = "FreeFireIzzapiFF_BOT"  
 TARGET_URL = f"https://t.me/{BOT_USERNAME}?start=claim"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
 def is_owner(user):
-    """Check if sender is owner via ID or either Username"""
     if user.id == ALLOWED_USER_ID:
         return True
     if user.username and user.username.lower() in ALLOWED_USERNAMES:
@@ -78,8 +76,9 @@ def region_inline_menu():
 def callback_handler(call):
     global is_bot_stopped
     
+    # Silent Check
     if is_bot_stopped and not is_owner(call.from_user):
-        bot.answer_callback_query(call.id, "🛠️ Bot is currently under maintenance!", show_alert=True)
+        bot.answer_callback_query(call.id, "🛠️ Bot is under maintenance!", show_alert=True)
         return
 
     user_id = call.from_user.id
@@ -141,20 +140,20 @@ def all_messages_handler(message):
     text = message.text
     user_id = message.from_user.id
 
-    # Owner Commands
+    # Silent Stop/Start Commands
     if is_owner(message.from_user):
         if text == "/stopbot":
             is_bot_stopped = True
-            bot.reply_to(message, "🛑 **Bot Stopped!** Normal users can no longer use it.")
+            bot.reply_to(message, "🛑 **Bot Stopped Silently!** (No message sent to users)")
             return
         elif text == "/startbot":
             is_bot_stopped = False
-            bot.reply_to(message, "🟢 **Bot Started!** Everyone can use it now.")
+            bot.reply_to(message, "🟢 **Bot Started Silently!** (No message sent to users)")
             return
 
-    # Check if Stopped
+    # Check if Bot is Stopped for normal users
     if is_bot_stopped and not is_owner(message.from_user):
-        bot.reply_to(message, "🛠️ **Bot is under maintenance.**")
+        bot.reply_to(message, "🛠️ **Bot is under maintenance.** Access restricted by owner.")
         return
 
     if text and text.startswith('/start'):
@@ -166,12 +165,13 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu())
 
     elif text == "🎁 REFER & EARN":
-        referral_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
+        # HAR USER KA ALAG UNIQUE REFERRAL LINK
+        unique_referral_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
         ref_text = (
             "🎁 **REFER & EARN SYSTEM**\n\n"
-            "📢 Share your referral link with friends!\n"
+            "📢 Share your unique referral link with friends!\n"
             "🚀 Earn Free VIP Likes for every referral.\n\n"
-            f"🔗 **Your Invite Link:**\n`{referral_link}`"
+            f"🔗 **Your Personal Invite Link:**\n`{unique_referral_link}`"
         )
         bot.send_message(message.chat.id, ref_text, parse_mode="Markdown")
 
@@ -222,4 +222,4 @@ def process_user_uid(message, region):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-    
+        
