@@ -3,6 +3,7 @@ import sqlite3
 import threading
 import logging
 import urllib.parse
+import secrets
 import requests
 from flask import Flask
 import telebot
@@ -26,10 +27,11 @@ UPI_ID = "7605900368@fam"
 ACCOUNT_NAME = "Amlan malik"
 
 GPLINKS_API_KEY = "b480bd48837b6b20f20db558add38fc763270af"
-# Target destination link for GPLinks
-TARGET_URL = "https://google.com"
 
 bot = telebot.TeleBot(BOT_TOKEN)
+
+# Active Token Tracker (In Memory)
+valid_tokens = {}
 
 def is_owner(user):
     if user.id == ALLOWED_USER_ID:
@@ -59,7 +61,7 @@ def force_join_menu():
     return markup
 
 def get_short_link(target_url):
-    """Fetches the actual shortened URL from GPLinks API"""
+    """Fetches shortened URL from GPLinks API"""
     try:
         api_url = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(target_url)}"
         response = requests.get(api_url, timeout=10)
@@ -132,16 +134,7 @@ def callback_handler(call):
         )
         return
 
-    if call.data == 'claim_verify':
-        bot.answer_callback_query(call.id, "✅ Task Verified!")
-        bot.send_message(
-            call.message.chat.id,
-            "🎯 **Task Verified!**\n\nAb apna **Free Fire Region** choose karein:",
-            reply_markup=region_inline_menu(),
-            parse_mode="Markdown"
-        )
-
-    elif call.data.startswith('pkg_'):
+    if call.data.startswith('pkg_'):
         parts = call.data.split('_')
         amount = parts[1]
         plan_name = parts[2]
@@ -202,6 +195,23 @@ def all_messages_handler(message):
         return
 
     if text and text.startswith('/start'):
+        args = text.split()
+        
+        # Check if Start contains Secret Claim Token
+        if len(args) > 1 and args[1].startswith('claim_'):
+            token = args[1]
+            if token in valid_tokens and valid_tokens[token] == user_id:
+                del valid_tokens[token] # Single-use token logic
+                bot.send_message(
+                    message.chat.id,
+                    "🎉 **GPLinks Task Verified Successfully!**\n\nAb apna **Free Fire Region** choose karein:",
+                    reply_markup=region_inline_menu(),
+                    parse_mode="Markdown"
+                )
+            else:
+                bot.send_message(message.chat.id, "❌ **Invalid ya Expired Link!** Please naya task start karein.")
+            return
+
         welcome_text = "✨ Welcome to Free Fire VIP Likes Bot!\n\n👇 Tap an option below:"
         bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu())
 
@@ -225,13 +235,22 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, text_msg, reply_markup=markup, parse_mode="Markdown")
 
     elif text == "⭐ FREE LIKES":
-        short_link = get_short_link(TARGET_URL)
-        text_msg = "🔓 Complete task to get Free Likes:"
+        # Generate Secret One-Time Token for User
+        token = f"claim_{secrets.token_hex(4)}"
+        valid_tokens[token] = user_id
+        
+        target_destination = f"https://t.me/{BOT_USERNAME}?start={token}"
+        short_link = get_short_link(target_destination)
+        
+        text_msg = (
+            "🔓 **FREE LIKES TASK**\n\n"
+            "1️⃣ Neeche diye gaye **`🔗 Open & Complete Link`** par click karein.\n"
+            "2️⃣ GPLinks par saare Steps & Ads bypass karke **Get Link** par click karein.\n"
+            "3️⃣ Automatic Verification ke baad aap wapas yahan redirect ho jaoge!"
+        )
         
         inline_kb = InlineKeyboardMarkup()
-        # Fixed URL Button (Opens external browser correctly)
         inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=short_link))
-        inline_kb.add(InlineKeyboardButton("✅ I Have Completed Task", callback_data="claim_verify"))
 
         bot.send_message(message.chat.id, text_msg, reply_markup=inline_kb, parse_mode="Markdown")
 
@@ -249,4 +268,4 @@ def process_user_uid(message, region):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-    
+        
