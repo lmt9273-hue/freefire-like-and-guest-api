@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8868364202:AAHmY3fFncwmpDjDjbwCWz").strip()
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8868364202:AAFl-7nyZU4HBoD5OB4ADcM-54sQDe6G7IA").strip()
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
