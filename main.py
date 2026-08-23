@@ -11,7 +11,7 @@ from flask import Flask
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = "8868364202:AAETx4LSN2jKGdp-Zcs82l6cET0rPLwWPv8"
+BOT_TOKEN = "8868364202:AAFrXq8EG2ubMgOMys1ht2HM_Uvge9ZN5xo"
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7125817223
 OWNER_USERNAME = "rohit2848"
