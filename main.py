@@ -11,7 +11,6 @@ from telebot.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeybo
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- CONFIGURATION ---
 BOT_TOKEN = "8868364202:AAHmY3fFncwmpDjDjbwCWzcg-cuq-xCNbAI"
 BOT_USERNAME = "FreeFirebrazilFF_BOT"
 
@@ -25,12 +24,9 @@ is_bot_stopped = False
 UPI_ID = "7605900368@fam"
 ACCOUNT_NAME = "Amlan malik"
 
-# Updated with Urlshortx API Key (Clean & Safe Ads)
 URLSHORTX_API_KEY = "73da8be2b31a94196410af3417fa8976c98a61f9"
 
 bot = telebot.TeleBot(BOT_TOKEN)
-
-# Dynamic Verification Tokens {token: user_id}
 valid_tokens = {}
 
 def is_owner(user):
@@ -46,8 +42,7 @@ def check_force_join(user_id):
             member = bot.get_chat_member(ch, user_id)
             if member.status in ['left', 'kicked']:
                 return False
-        except Exception as e:
-            logger.error(f"Error checking channel join: {e}")
+        except Exception:
             return False
     return True
 
@@ -60,34 +55,34 @@ def force_join_menu():
     return markup
 
 def get_short_link(target_url):
-    """Urlshortx API Generator"""
+    """Urlshortx Direct API Fetch"""
     api_url = f"https://urlshortx.com/api?api={URLSHORTX_API_KEY}&url={urllib.parse.quote(target_url)}"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
     try:
-        response = requests.get(api_url, headers=headers, timeout=12)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("status") == "success" and "shortenedUrl" in data:
+        res = requests.get(api_url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            data = res.json()
+            if "shortenedUrl" in data and data["shortenedUrl"]:
                 return data["shortenedUrl"]
-            elif "shortenedUrl" in data:
-                return data["shortenedUrl"]
+            elif data.get("status") == "success":
+                return data.get("url") or data.get("shortenedUrl")
     except Exception as e:
-        logger.error(f"Urlshortx Fetch Failure: {e}")
-    return None
+        logger.error(f"Urlshortx Error: {e}")
+    
+    # Direct Backup Format
+    return f"https://urlshortx.com/st?api={URLSHORTX_API_KEY}&url={urllib.parse.quote(target_url)}"
 
 def get_qr_url(amount):
     upi_string = f"upi://pay?pa={UPI_ID}&pn=Amlan%20malik&am={amount}&cu=INR"
     return f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={urllib.parse.quote(upi_string)}"
 
-app = Flask('')
+app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot status running!"
-
-def run_web():
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    return "Bot status active"
 
 def main_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -113,7 +108,7 @@ def callback_handler(call):
     user_id = call.from_user.id
     
     if is_bot_stopped and not is_owner(call.from_user):
-        bot.answer_callback_query(call.id, "🛠️ Bot is under maintenance!", show_alert=True)
+        bot.answer_callback_query(call.id, "🛠️ Maintenance status!", show_alert=True)
         return
 
     if call.data == 'check_join_again':
@@ -121,33 +116,26 @@ def callback_handler(call):
             bot.answer_callback_query(call.id, "✅ Verified!")
             bot.send_message(call.message.chat.id, "🎉 Access Granted!", reply_markup=main_menu())
         else:
-            bot.answer_callback_query(call.id, "❌ Channel join nahi hai!", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ Channel join karo!", show_alert=True)
         return
 
     if not is_owner(call.from_user) and not check_force_join(user_id):
         bot.answer_callback_query(call.id, "❌ Access Denied!", show_alert=True)
-        bot.send_message(
-            call.message.chat.id,
-            "⚠️ **Access Revoked!** Please join the channel first:",
-            reply_markup=force_join_menu(),
-            parse_mode="Markdown"
-        )
+        bot.send_message(call.message.chat.id, "⚠️ Join channel first:", reply_markup=force_join_menu())
         return
 
     if call.data.startswith('pkg_'):
         parts = call.data.split('_')
         amount, plan_name = parts[1], parts[2]
-        
         bot.answer_callback_query(call.id)
         qr_image_url = get_qr_url(amount)
-        
         caption = (
             f"🟢 **UPI Payment Details**\n\n"
             f"👤 **Name:** `{ACCOUNT_NAME}`\n"
             f"📦 **Plan:** `{plan_name} VIP`\n"
             f"💰 **Amount:** `₹{amount}`\n"
             f"💳 **UPI ID:** `{UPI_ID}`\n\n"
-            f"📤 Screenshot bhejein: @rohit2848"
+            f"📤 Screenshot: @rohit2848"
         )
         try:
             bot.send_photo(call.message.chat.id, photo=qr_image_url, caption=caption, parse_mode="Markdown")
@@ -177,34 +165,27 @@ def all_messages_handler(message):
             return
 
     if is_bot_stopped and not is_owner(message.from_user):
-        bot.reply_to(message, "🛠️ **Bot is under maintenance.**")
+        bot.reply_to(message, "🛠️ **Under maintenance.**")
         return
 
     if not is_owner(message.from_user) and not check_force_join(user_id):
-        bot.send_message(
-            message.chat.id,
-            "⚠️ **Access Denied!** Join channel first:",
-            reply_markup=force_join_menu(),
-            parse_mode="Markdown"
-        )
+        bot.send_message(message.chat.id, "⚠️ Join channel first:", reply_markup=force_join_menu())
         return
 
     if text and text.startswith('/start'):
         args = text.split()
-        
-        # Checking dynamic claim verification token
         if len(args) > 1 and args[1].startswith('claim_'):
             token = args[1]
             if token in valid_tokens and valid_tokens[token] == user_id:
                 del valid_tokens[token]
                 bot.send_message(
                     message.chat.id,
-                    "🎉 **Task Verified Successfully!**\n\nAb apna **Free Fire Region** choose karein:",
+                    "🎉 **Task Verified Successfully!**\n\nChoose Region:",
                     reply_markup=region_inline_menu(),
                     parse_mode="Markdown"
                 )
             else:
-                bot.send_message(message.chat.id, "❌ **Expired ya Invalid Link!** Please naya link generate karein.")
+                bot.send_message(message.chat.id, "❌ **Expired/Invalid Link!** Generate new link.")
             return
 
         bot.send_message(message.chat.id, "✨ Welcome to Free Fire VIP Likes Bot!", reply_markup=main_menu())
@@ -233,16 +214,12 @@ def all_messages_handler(message):
         
         target_destination = f"https://t.me/{BOT_USERNAME}?start={token}"
         short_link = get_short_link(target_destination)
-        
-        if not short_link:
-            bot.send_message(message.chat.id, "⚠️ Server busy! Press **⭐ FREE LIKES** again in 5 seconds.")
-            return
 
         text_msg = (
             "🔓 **FREE LIKES TASK**\n\n"
             "1️⃣ Neeche diye gaya **`🔗 Open & Complete Link`** par click karein.\n"
             "2️⃣ Steps complete karke **Get Link** button dabayein.\n"
-            "3️⃣ Direct Telegram open karke **START** par click karein, verification ho jayega!"
+            "3️⃣ Direct Telegram open karke **START** click karein!"
         )
         
         inline_kb = InlineKeyboardMarkup()
@@ -253,11 +230,15 @@ def all_messages_handler(message):
 def process_user_uid(message, region):
     uid = message.text.strip()
     if not uid.isdigit():
-        bot.send_message(message.chat.id, "❌ Invalid UID! Numbers only.")
+        bot.send_message(message.chat.id, "❌ Invalid UID!")
         return
     bot.send_message(message.chat.id, f"🎉 Request Queued for UID: {uid} ({region})!")
 
-if __name__ == "__main__":
-    threading.Thread(target=run_web, daemon=True).start()
+def start_bot():
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-        
+
+if __name__ == "__main__":
+    threading.Thread(target=start_bot, daemon=True).start()
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+    
