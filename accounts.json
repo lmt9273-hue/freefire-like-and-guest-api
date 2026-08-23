@@ -1,0 +1,587 @@
+[
+  {
+    "account_id": "17294274258",
+    "name": "Brz.31SUYC",
+    "password": "359CZ4JMWZ3K0KDJLNFTG4YOK6VLM9LL",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932978542
+  },
+  {
+    "account_id": "17294275595",
+    "name": "Brz.31SGSA",
+    "password": "11U5P11GKDN4H0F53ZORCU0AJI9FHS6G",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932980303
+  },
+  {
+    "account_id": "17294275597",
+    "name": "Brz.31FKXJ",
+    "password": "362SG9AZOVC6P1RFGFB61605CX66QIFO",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932979649
+  },
+  {
+    "account_id": "17294275400",
+    "name": "Brz.31DVIW",
+    "password": "064VN8JGQIJVTCAJ1MN4DBLOGQ0D0ZM5",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932978540
+  },
+  {
+    "account_id": "17294275396",
+    "name": "Brz.31XUAV",
+    "password": "88PN415YGCD7SWDT6AF274AP0KKTHDV8",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932979179
+  },
+  {
+    "account_id": "17294275134",
+    "name": "Brz.31UOUO",
+    "password": "595T8LZE0MNE6EQ8F9JYYAWG8WBPTNMQ",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932979953
+  },
+  {
+    "account_id": "17294275133",
+    "name": "Brz.31RVIA",
+    "password": "75EWR8LJN8KRZ0T3Q7N95R7JY9PA520O",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932979651
+  },
+  {
+    "account_id": "17294275399",
+    "name": "Brz.31IDKA",
+    "password": "41FGS0N1YT99RCRACZT7AOR6SQX4W5B3",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932979573
+  },
+  {
+    "account_id": "17294276519",
+    "name": "Brz.31UPPQ",
+    "password": "22L0S19QIR6CPARRTY5BJKOC6090A9E9",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932981132
+  },
+  {
+    "account_id": "17294276756",
+    "name": "Brz.31VJHB",
+    "password": "79VM424SQ1YCQKNEEQ7H9EVDBHS5B7UL",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932981134
+  },
+  {
+    "account_id": "17294275165",
+    "name": "Brz.31USNO",
+    "password": "857VLLQQG8B8TSPPS9S6D1NKKGMRQWRM",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932979452
+  },
+  {
+    "account_id": "17294276520",
+    "name": "Brz.31ZEKD",
+    "password": "10BR6UVIKDARIGQRREOTXJQ6D3YQ0IAC",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932980356
+  },
+  {
+    "account_id": "17294275741",
+    "name": "Brz.31KBVL",
+    "password": "73FX9CTN2DBM0VIE2KH7IFD9OMIQYXMD",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932980009
+  },
+  {
+    "account_id": "17294276959",
+    "name": "Brz.31QXBI",
+    "password": "662M3T7AHGT8XJ8G79PIOC6MIZHEQ087",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932981566
+  },
+  {
+    "account_id": "17294277309",
+    "name": "Brz.31YJSK",
+    "password": "19II3PS2PMT0L8INA8T7ZPN4P0Z0TP3E",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932980740
+  },
+  {
+    "account_id": "17294279687",
+    "name": "Brz.31WXIZ",
+    "password": "286WCDBJQWD3MBY0GW2558DE7P4X1QF0",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932987325
+  },
+  {
+    "account_id": "17294279833",
+    "name": "Brz.31PDKR",
+    "password": "82A6H42LKF37CDBN9DWFFGGOYBL3YXHT",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932987455
+  },
+  {
+    "account_id": "17294280112",
+    "name": "Brz.31IMQT",
+    "password": "52O3GP9Z726D55U37SESJAB6TJJEDOTA",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932987413
+  },
+  {
+    "account_id": "17294280110",
+    "name": "Brz.31NGEF",
+    "password": "56YK0WK9TNZBABX74E30OSBK2N0KAY5C",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932987453
+  },
+  {
+    "account_id": "17294280115",
+    "name": "Brz.31RAZX",
+    "password": "05KX83SLCNPSE1DF8CI9WCEZMRS2I41C",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932987412
+  },
+  {
+    "account_id": "17294283488",
+    "name": "Brz.31ISLP",
+    "password": "170AID8A8W39JQ6YT3P90DCL7OTG54B9",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932989911
+  },
+  {
+    "account_id": "17294283536",
+    "name": "Brz.31QFPX",
+    "password": "34QINJDSARTZGLOOVR1HWZKLY2Z35DZP",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932990010
+  },
+  {
+    "account_id": "17294283842",
+    "name": "Brz.31YJMO",
+    "password": "99EZ3V3JPMHH9Y45PSO59TTD6LNJVJX6",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932989714
+  },
+  {
+    "account_id": "17294285757",
+    "name": "Brz.31AFKZ",
+    "password": "9558HB5PZHD1TYTDAD646T3CXK0J25PM",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932989887
+  },
+  {
+    "account_id": "17294285484",
+    "name": "Brz.31UCFO",
+    "password": "52KHEHZAZ14YR4E3DXXNWOZYC74AMVYU",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932990231
+  },
+  {
+    "account_id": "17294287560",
+    "name": "Brz.31RQOC",
+    "password": "59ZKS90BT35KKL050MZIZ2YW1TPII1E6",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932990732
+  },
+  {
+    "account_id": "17294288358",
+    "name": "Brz.31EWCC",
+    "password": "92J672FCIXLVN5UDUOE5REF2G5RHUF1Y",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932990011
+  },
+  {
+    "account_id": "17294287553",
+    "name": "Brz.31GLLV",
+    "password": "78U3E7KL8Z45VKLEDRPG1T30CF257ZSV",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932990943
+  },
+  {
+    "account_id": "17294288705",
+    "name": "Brz.31GGAO",
+    "password": "73SNL8AUCC54FHFNHGG7JQVH7L0A6JFK",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932990937
+  },
+  {
+    "account_id": "17294290383",
+    "name": "Brz.31RTDO",
+    "password": "64EEM4HZBXX2X4G340C4MJDAMLYS3Z1R",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932990992
+  },
+  {
+    "account_id": "17294285621",
+    "name": "Brz.31GPKD",
+    "password": "64WT9AAIY878O4CGPUC9278RJELKBLZW",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932989962
+  },
+  {
+    "account_id": "17294292161",
+    "name": "Brz.31HYLE",
+    "password": "37SG3FYOIRFVZO4WFM9PRQ800R258L7R",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932990969
+  },
+  {
+    "account_id": "17294289908",
+    "name": "Brz.31SRBY",
+    "password": "91RV67IIZ95RA91P2CBOXS28ATURZ2ZF",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932990940
+  },
+  {
+    "account_id": "17294289668",
+    "name": "Brz.31HHLB",
+    "password": "88IB7WSOB0OL0QSZU8MHIO45MOXL9XKY",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932990706
+  },
+  {
+    "account_id": "17294290198",
+    "name": "Brz.31CDFU",
+    "password": "389HKDDSVYS1GAKHM04SQ7NQS08LVP7R",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6932990966
+  },
+  {
+    "account_id": "17294301613",
+    "name": "Brz.31QWFI",
+    "password": "066J8STOEXD7M9OQU0BGNJOH0JS12LWP",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933011889
+  },
+  {
+    "account_id": "17294301723",
+    "name": "Brz.31COTF",
+    "password": "37PHU3AQ6Y7IHPSKBXMOYNVGN324HQ5B",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933010847
+  },
+  {
+    "account_id": "17294301616",
+    "name": "Brz.31MJDS",
+    "password": "76WWNNQDFYWP2GCSPLANXB9L79H8OLQT",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933010916
+  },
+  {
+    "account_id": "17294301868",
+    "name": "Brz.31RSYX",
+    "password": "2987AIWO8VZH7N6ZOIIQWVCDOYIK2AHU",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933012525
+  },
+  {
+    "account_id": "17294301172",
+    "name": "Brz.31DYGM",
+    "password": "48PO2YSFC92BVBQ9R0PSBAI8NDDWDSDR",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933012097
+  },
+  {
+    "account_id": "17294301867",
+    "name": "Brz.31YBMQ",
+    "password": "120E32AFH1CJ9GKVRR88IKRLW254NRP7",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933012098
+  },
+  {
+    "account_id": "17294302660",
+    "name": "Brz.31IUUB",
+    "password": "29GJL5YZD8AQ7V85QXC3FXJ7449L2RRM",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933013660
+  },
+  {
+    "account_id": "17294302166",
+    "name": "Brz.31CFJW",
+    "password": "54TIKCWK6A5Z6NAIIZEFSYZQDF6EF6OW",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933012868
+  },
+  {
+    "account_id": "17294302512",
+    "name": "Brz.31TEXV",
+    "password": "46GU4FR9RMDCCTG6GH3U5LMWMO5FCSIE",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933012637
+  },
+  {
+    "account_id": "17294302020",
+    "name": "Brz.31AECO",
+    "password": "05T195K5C9QXA9DS93RGKLW9IM3AN1AL",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933010697
+  },
+  {
+    "account_id": "17294302441",
+    "name": "Brz.31OIDU",
+    "password": "18H76XVPN184VUWG9WCXMPK9FWBH1WW7",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933013659
+  },
+  {
+    "account_id": "17294303460",
+    "name": "Brz.31DNQS",
+    "password": "20KNI5YT9MLPI1416HAZWJ7WK2CT6842",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933011893
+  },
+  {
+    "account_id": "17294302442",
+    "name": "Brz.31LKXE",
+    "password": "43BMCJ0F2ZIS3YFLY9B38DTVMQJX6YW4",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933011750
+  },
+  {
+    "account_id": "17294303461",
+    "name": "Brz.31HPAK",
+    "password": "5174BPZASVKAH1KY8CGENTD41CPTWUXW",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933013560
+  },
+  {
+    "account_id": "17294303517",
+    "name": "Brz.31LNYT",
+    "password": "35ADUEEQAI2D5YZ2BYS12LJ2UZL5P2UZ",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933012345
+  },
+  {
+    "account_id": "17294308393",
+    "name": "Brz.31TXCC",
+    "password": "52KJ97ZOX2L2MHTT4OX4X3I67X5YWE32",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933020870
+  },
+  {
+    "account_id": "17294308637",
+    "name": "Brz.31XVDK",
+    "password": "88O381HJD19L0LA9627L5AN5FNHV450M",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933021060
+  },
+  {
+    "account_id": "17294308793",
+    "name": "Brz.31JCUP",
+    "password": "04ZUNKH82NHSARM09ZXTHC3BSMLS0JM7",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933021430
+  },
+  {
+    "account_id": "17294308696",
+    "name": "Brz.31BUAP",
+    "password": "3373XC3V6LMMRI2SSBKXV920Z8QPQ20E",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933020596
+  },
+  {
+    "account_id": "17294308695",
+    "name": "Brz.31WCBH",
+    "password": "17ZJAGS4NBX345CWP95PPOFE7MDV0GV0",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933021193
+  },
+  {
+    "account_id": "17294309293",
+    "name": "Brz.31PUHJ",
+    "password": "12D1FUUSPOJG0JKY8IP86M25K9JTLN2Z",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933020682
+  },
+  {
+    "account_id": "17294309140",
+    "name": "Brz.31SZXH",
+    "password": "22SWX6HHNTOBIITIHVDERVWCO9NKEPMF",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933021061
+  },
+  {
+    "account_id": "17294308849",
+    "name": "Brz.31YGNO",
+    "password": "65Q8MFJ0QPQUOKZ96E7KWF8KSJCK0CW3",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933021304
+  },
+  {
+    "account_id": "17294309318",
+    "name": "Brz.31DPCL",
+    "password": "66NTE8V7O9Z7B83IAKNRJEIS0F0LQ0WF",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933021639
+  },
+  {
+    "account_id": "17294310204",
+    "name": "Brz.31ETRY",
+    "password": "55VEQWQA7GACULWABJOGJ5KZM4UKYLRQ",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933021425
+  },
+  {
+    "account_id": "17294309805",
+    "name": "Brz.31AKFH",
+    "password": "53KMUEDGR7C3SSMW1VWD1IWHMI7J4Y0U",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933022179
+  },
+  {
+    "account_id": "17294309927",
+    "name": "Brz.31FQCP",
+    "password": "24WV7TY2GYIV3RXXJPSLLZQTT2K9GDEC",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933021428
+  },
+  {
+    "account_id": "17294309778",
+    "name": "Brz.31MGCJ",
+    "password": "20ZQEA1K8T6O7E034KVQP64X5Y2S0YPA",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933021489
+  },
+  {
+    "account_id": "17294310222",
+    "name": "Brz.31MQWK",
+    "password": "6600VFG0FCDIBGQXFQ3ZBQ9G3OPU1JFR",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933021941
+  },
+  {
+    "account_id": "17294309779",
+    "name": "Brz.31SRSW",
+    "password": "98SJ627AKI73CU5RD4IF2SUIRQC8TRKL",
+    "region": "IND",
+    "stage": "complete",
+    "status": "full_login",
+    "uid": 6933021431
+  }
+    ]
