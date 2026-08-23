@@ -7,8 +7,6 @@ from datetime import datetime, timedelta
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 import logging
 import sys
-from io import BytesIO
-from PIL import Image, ImageDraw
 
 # Configure logging
 logging.basicConfig(
@@ -27,10 +25,10 @@ if not BOT_TOKEN:
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7128817223
 OWNER_USERNAME = "@rohit2848"
-
-# UPI Details & Direct QR Image Link
 UPI_ID = "7605900368@fam"  
-QR_CODE_URL = "https://i.ibb.co/3s682Hn/61380.jpg"  
+
+# Direct Image Link for FamPay QR
+QR_CODE_URL = "https://i.postimg.cc/mD8TdtZz/61380.jpg"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 like_tracker = {}   
@@ -50,17 +48,6 @@ def reset_limits():
             logger.error(f"Error in reset thread: {e}")
 
 threading.Thread(target=reset_limits, daemon=True).start()
-
-# === UTILS ===
-def is_user_in_channel(user_id):
-    try:
-        for channel in REQUIRED_CHANNELS:
-            member = bot.get_chat_member(channel, user_id)
-            if member.status not in ['member', 'administrator', 'creator']:
-                return False
-        return True
-    except Exception as e:
-        return False
 
 def call_api(region, uid):
     url = f"https://freefire-like-and-guest-api-br9t.onrender.com/like?sg={region}&uid={uid}"
@@ -113,7 +100,6 @@ def start_command(message):
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu(), parse_mode="Markdown")
 
-# === PROFILE BUTTON ===
 @bot.message_handler(func=lambda message: message.text == "📊 MY PROFILE")
 def profile_click(message):
     user_id = message.from_user.id
@@ -154,25 +140,15 @@ def buy_vip_click(message):
     markup.add(btn)
     
     try:
-        # Headers add karke Telegram block issue resolve kiya gaya
-        headers = {"User-Agent": "Mozilla/5.0"}
-        img_resp = requests.get(QR_CODE_URL, headers=headers, timeout=10)
-        
-        if img_resp.status_code == 200:
-            bot.send_photo(message.chat.id, photo=img_resp.content, caption=text, reply_markup=markup, parse_mode="Markdown")
-        else:
-            bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
+        # Direct URL photo send
+        bot.send_photo(message.chat.id, photo=QR_CODE_URL, caption=text, reply_markup=markup, parse_mode="Markdown")
     except Exception as e:
         logger.error(f"Image Error: {e}")
         bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
-# === FREE LIKES & REGION ===
 @bot.message_handler(func=lambda message: message.text == "⭐ FREE LIKES")
 def free_likes_click(message):
-    text = (
-        "💖 **FREE LIKES SECTION**\n\n"
-        "🚀 Select your region to claim free likes!"
-    )
+    text = "💖 **FREE LIKES SECTION**\n\n🚀 Select your region to claim free likes!"
     bot.send_message(message.chat.id, text, reply_markup=region_menu(), parse_mode="Markdown")
 
 @bot.message_handler(func=lambda message: message.text in ["IND 🇮🇳", "BR 🇧🇷", "US 🇺🇸", "SG 🇸🇬", "RU 🇷🇺", "ID 🇮🇩"])
@@ -235,12 +211,10 @@ def process_like(message, region, uid):
     except Exception as e:
         bot.reply_to(message, "⚠️ Something went wrong processing the request.")
 
-# === BACK BUTTON ===
 @bot.message_handler(func=lambda message: message.text == "🔙 Back")
 def back_menu(message):
     bot.send_message(message.chat.id, "🔙 Main Menu", reply_markup=main_menu())
 
-# === REFER & OWNER ===
 @bot.message_handler(func=lambda message: message.text == "👥 REFER & EARN")
 def refer_click(message):
     bot_username = bot.get_me().username
@@ -255,26 +229,6 @@ def owner_click(message):
 def help_click(message):
     bot.send_message(message.chat.id, "📖 Use **⭐ FREE LIKES** button to get instant likes, or buy VIP for unlimited access!", parse_mode="Markdown")
 
-# === BROADCAST COMMAND (OWNER ONLY) ===
-@bot.message_handler(commands=['broadcast'])
-def broadcast_msg(message):
-    if message.from_user.id != OWNER_ID:
-        return
-    text = message.text.replace("/broadcast", "").strip()
-    if not text:
-        bot.reply_to(message, "❌ Please provide a message! Usage: `/broadcast Hello Users`", parse_mode="Markdown")
-        return
-    
-    count = 0
-    for uid in user_database:
-        try:
-            bot.send_message(uid, f"📢 **ANNOUNCEMENT:**\n\n{text}", parse_mode="Markdown")
-            count += 1
-        except Exception:
-            pass
-    bot.reply_to(message, f"✅ Broadcast sent to {count} users!")
-
-# === POLLING START ===
 if __name__ == "__main__":
     print("Bot is running in Polling Mode...")
     bot.infinity_polling(skip_pending=True)
