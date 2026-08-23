@@ -11,19 +11,15 @@ from flask import Flask
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = "8868364202:AAGAm1kLCpJRz-01hlYGTKPzbLzQhF4VLSQ"
+BOT_TOKEN = "8868364202:AAF1FWkefAs1pBBuPj5ZCh7HqVbyN6sN6_U"
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7125817223
 OWNER_USERNAME = "rohit2848"
 UPI_ID = "7605900368@fam"
 
-# Secret Code jo user ko link ke baad enter karna hoga
-SECRET_VERIFY_CODE = "FF2026"  
-
 GPLINKS_API_KEY = "B127680908b90e463b9216880b34fb36e0a6a9c6"
 TARGET_URL = "https://t.me/hacklinkpc"
-# Ek stable image hosting link ya direct working image URL
-QR_CODE_URL = "https://i.ibb.co/6Js976z/qr-sample.jpg" # Example stable link, ya aap apni image ka koi aur direct link daal sakte hain
+QR_CODE_URL = "https://i.ibb.co/6Js976z/qr-sample.jpg" 
 
 bot = telebot.TeleBot(BOT_TOKEN)
 BOT_CONTROL_FILE = "bot_stopped.lock"
@@ -132,35 +128,27 @@ def region_inline_menu():
     )
     return markup
 
-@bot.callback_query_handler(func=lambda call: call.data == 'enter_code' or call.data.startswith('region_'))
+@bot.callback_query_handler(func=lambda call: call.data == 'claim_verify' or call.data.startswith('region_'))
 def callback_handler(call):
     user_id = call.from_user.id
     if os.path.exists(BOT_CONTROL_FILE):
         bot.answer_callback_query(call.id, "⚠️ Bot is currently OFF by Owner @rohit2848.", show_alert=True)
         return
 
-    if call.data == 'enter_code':
-        msg = bot.send_message(call.message.chat.id, "🔑 **Enter Secret Passcode**\n\nLink complete karke mila hua **Secret Code** yahan type karke bhejein:", parse_mode="Markdown")
-        bot.register_next_step_handler(msg, process_secret_code)
-        bot.answer_callback_query(call.id)
-
+    if call.data == 'claim_verify':
+        bot.answer_callback_query(call.id, "✅ Verified!")
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="🎯 **Verification Done!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
+            reply_markup=region_inline_menu(),
+            parse_mode="Markdown"
+        )
     elif call.data.startswith('region_'):
         region = call.data.split('_')[1]
         msg = bot.send_message(call.message.chat.id, f"🎯 Selected Region: **{region}**\n\n📝 Enter your Free Fire UID:", parse_mode="Markdown")
         bot.register_next_step_handler(msg, process_user_uid, region)
         bot.answer_callback_query(call.id)
-
-def process_secret_code(message):
-    code = message.text.strip()
-    if code == SECRET_VERIFY_CODE:
-        bot.send_message(
-            message.chat.id,
-            "✅ **Code Verified Successfully!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
-            reply_markup=region_inline_menu(),
-            parse_mode="Markdown"
-        )
-    else:
-        bot.send_message(message.chat.id, "❌ **Wrong Code!** Link sahi se complete karke Secret Code dekhein aur firse try karein.")
 
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'video', 'document', 'audio', 'sticker'])
 def all_messages_handler(message):
@@ -222,8 +210,7 @@ def all_messages_handler(message):
             bot.send_photo(message.chat.id, photo=QR_CODE_URL, caption=text_msg, reply_markup=markup)
         except Exception as e:
             logger.error(f"Photo send error: {e}")
-            # Fallback agar photo load na ho toh text bhej dega taaki user ko UPI ID mil sake
-            bot.send_message(message.chat.id, "⚠️ QR Code image load nahi ho payi. Aap upar diye gaye UPI ID par direct payment kar sakte hain:\n\n" + text_msg, reply_markup=markup)
+            bot.send_message(message.chat.id, text_msg, reply_markup=markup)
 
     elif text == "⭐ FREE LIKES":
         if not is_subscribed(user_id):
@@ -233,14 +220,13 @@ def all_messages_handler(message):
         short_link = get_short_link()
         text_msg = (
             "🔓 **UNLOCK FREE LIKES**\n\n"
-            "1. Niche **`🔗 Open & Complete Link`** par click karke task complete karein.\n"
-            "2. Last page par mila **Secret Code** (`FF2026`) dekhein.\n"
-            "3. **`🔑 Submit Secret Code`** button par click karke code enter karein!"
+            "Free Likes paane ke liye niche diye gaye **Link** ko open karke task complete karein.\n\n"
+            "Task complete karne ke baad **`✅ Complete & Claim Likes`** button par click karein!"
         )
         
         inline_kb = InlineKeyboardMarkup()
         inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=short_link))
-        inline_kb.add(InlineKeyboardButton("🔑 Submit Secret Code", callback_data="enter_code"))
+        inline_kb.add(InlineKeyboardButton("✅ Complete & Claim Likes", callback_data="claim_verify"))
 
         bot.send_message(message.chat.id, text_msg, reply_markup=inline_kb, parse_mode="Markdown")
 
