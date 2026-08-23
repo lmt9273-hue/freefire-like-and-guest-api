@@ -1,5 +1,4 @@
 import os
-import sqlite3
 import threading
 import logging
 import urllib.parse
@@ -26,11 +25,12 @@ is_bot_stopped = False
 UPI_ID = "7605900368@fam"
 ACCOUNT_NAME = "Amlan malik"
 
-GPLINKS_API_KEY = "b480bd48837b6b20f20db558add38fc763270af"
+# Updated with your active Shrinkme API Key
+SHRINKME_API_KEY = "79bb11f8fbdbfc1371908a293b010548208e1f24"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Dynamic Active Verification Tokens
+# Dynamic Verification Tokens {token: user_id}
 valid_tokens = {}
 
 def is_owner(user):
@@ -41,7 +41,6 @@ def is_owner(user):
     return False
 
 def check_force_join(user_id):
-    """Real-time check: verifies if user is STILL in the channel"""
     for ch in REQUIRED_CHANNELS:
         try:
             member = bot.get_chat_member(ch, user_id)
@@ -61,11 +60,11 @@ def force_join_menu():
     return markup
 
 def get_short_link(target_url):
-    """Strict GPLinks shortener generator"""
-    api_url = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(target_url)}"
+    """Shrinkme.io API Link Generator"""
+    api_url = f"https://shrinkme.io/api?api={SHRINKME_API_KEY}&url={urllib.parse.quote(target_url)}"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     try:
-        response = requests.get(api_url, headers=headers, timeout=10)
+        response = requests.get(api_url, headers=headers, timeout=12)
         if response.status_code == 200:
             data = response.json()
             if data.get("status") == "success" and "shortenedUrl" in data:
@@ -73,7 +72,7 @@ def get_short_link(target_url):
             elif "shortenedUrl" in data:
                 return data["shortenedUrl"]
     except Exception as e:
-        logger.error(f"GPLinks Fetch Failure: {e}")
+        logger.error(f"Shrinkme Fetch Failure: {e}")
     return None
 
 def get_qr_url(amount):
@@ -108,7 +107,6 @@ def region_inline_menu():
     )
     return markup
 
-# --- CALLBACK QUERY HANDLER ---
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     global is_bot_stopped
@@ -118,21 +116,19 @@ def callback_handler(call):
         bot.answer_callback_query(call.id, "🛠️ Bot is under maintenance!", show_alert=True)
         return
 
-    # Force Join Check
     if call.data == 'check_join_again':
         if check_force_join(user_id):
-            bot.answer_callback_query(call.id, "✅ Verified! Welcome back.")
-            bot.send_message(call.message.chat.id, "🎉 Access Granted! Options select karein:", reply_markup=main_menu())
+            bot.answer_callback_query(call.id, "✅ Verified!")
+            bot.send_message(call.message.chat.id, "🎉 Access Granted!", reply_markup=main_menu())
         else:
-            bot.answer_callback_query(call.id, "❌ Channel join nahi hai! Pehle join karein.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ Channel join nahi hai!", show_alert=True)
         return
 
-    # Real-time Channel Leave Check
     if not is_owner(call.from_user) and not check_force_join(user_id):
-        bot.answer_callback_query(call.id, "❌ Access Denied! Aapne channel leave kar diya hai.", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ Access Denied!", show_alert=True)
         bot.send_message(
             call.message.chat.id,
-            "⚠️ **Access Revoked!**\n\nAapne humara official channel leave kar diya hai. Bot use karne ke liye dubara join karein:",
+            "⚠️ **Access Revoked!** Please join the channel first:",
             reply_markup=force_join_menu(),
             parse_mode="Markdown"
         )
@@ -140,8 +136,7 @@ def callback_handler(call):
 
     if call.data.startswith('pkg_'):
         parts = call.data.split('_')
-        amount = parts[1]
-        plan_name = parts[2]
+        amount, plan_name = parts[1], parts[2]
         
         bot.answer_callback_query(call.id)
         qr_image_url = get_qr_url(amount)
@@ -154,11 +149,9 @@ def callback_handler(call):
             f"💳 **UPI ID:** `{UPI_ID}`\n\n"
             f"📤 Screenshot bhejein: @rohit2848"
         )
-        
         try:
             bot.send_photo(call.message.chat.id, photo=qr_image_url, caption=caption, parse_mode="Markdown")
-        except Exception as e:
-            logger.error(f"Error sending photo: {e}")
+        except Exception:
             bot.send_message(call.message.chat.id, caption, parse_mode="Markdown")
 
     elif call.data.startswith('region_'):
@@ -167,7 +160,6 @@ def callback_handler(call):
         msg = bot.send_message(call.message.chat.id, f"🎯 Selected Region: **{region}**\n\n📝 Enter Free Fire UID:", parse_mode="Markdown")
         bot.register_next_step_handler(msg, process_user_uid, region)
 
-# --- MESSAGE HANDLER ---
 @bot.message_handler(func=lambda message: True)
 def all_messages_handler(message):
     global is_bot_stopped
@@ -177,22 +169,21 @@ def all_messages_handler(message):
     if is_owner(message.from_user):
         if text == "/stopbot":
             is_bot_stopped = True
-            bot.reply_to(message, "🛑 **Bot Stopped Silently!**")
+            bot.reply_to(message, "🛑 **Bot Stopped!**")
             return
         elif text == "/startbot":
             is_bot_stopped = False
-            bot.reply_to(message, "🟢 **Bot Started Silently!**")
+            bot.reply_to(message, "🟢 **Bot Started!**")
             return
 
     if is_bot_stopped and not is_owner(message.from_user):
         bot.reply_to(message, "🛠️ **Bot is under maintenance.**")
         return
 
-    # Real-time Check for commands / buttons
     if not is_owner(message.from_user) and not check_force_join(user_id):
         bot.send_message(
             message.chat.id,
-            "⚠️ **Access Denied!**\n\nAapne channel leave kar diya hai. Access paane ke liye dubara join karein:",
+            "⚠️ **Access Denied!** Join channel first:",
             reply_markup=force_join_menu(),
             parse_mode="Markdown"
         )
@@ -201,27 +192,25 @@ def all_messages_handler(message):
     if text and text.startswith('/start'):
         args = text.split()
         
-        # When User completes GPLinks & clicks 'Get Link', it redirects back with claim_ token
+        # Checking dynamic claim verification token
         if len(args) > 1 and args[1].startswith('claim_'):
             token = args[1]
             if token in valid_tokens and valid_tokens[token] == user_id:
-                del valid_tokens[token]  # One-time verification consume
+                del valid_tokens[token]
                 bot.send_message(
                     message.chat.id,
-                    "🎉 **GPLinks Task Verified Successfully!**\n\nAb apna **Free Fire Region** choose karein:",
+                    "🎉 **Task Verified Successfully!**\n\nAb apna **Free Fire Region** choose karein:",
                     reply_markup=region_inline_menu(),
                     parse_mode="Markdown"
                 )
             else:
-                bot.send_message(message.chat.id, "❌ **Invalid ya Expired Task!** Please naya task start karein.")
+                bot.send_message(message.chat.id, "❌ **Expired ya Invalid Link!** Please naya link generate karein.")
             return
 
-        welcome_text = "✨ Welcome to Free Fire VIP Likes Bot!\n\n👇 Tap an option below:"
-        bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu())
+        bot.send_message(message.chat.id, "✨ Welcome to Free Fire VIP Likes Bot!", reply_markup=main_menu())
 
     elif text == "🎁 REFER & EARN":
-        unique_referral_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
-        ref_text = f"🎁 **REFER & EARN**\n\n🔗 Your Invite Link:\n`{unique_referral_link}`"
+        ref_text = f"🎁 **REFER & EARN**\n\n🔗 Link:\n`https://t.me/{BOT_USERNAME}?start={user_id}`"
         bot.send_message(message.chat.id, ref_text, parse_mode="Markdown")
 
     elif text == "💎 BUY VIP / PREMIUM":
@@ -239,26 +228,21 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, text_msg, reply_markup=markup, parse_mode="Markdown")
 
     elif text == "⭐ FREE LIKES":
-        # Create a unique single-use token per user
         token = f"claim_{secrets.token_hex(4)}"
         valid_tokens[token] = user_id
         
-        # Destination link after GPLinks steps completion
         target_destination = f"https://t.me/{BOT_USERNAME}?start={token}"
         short_link = get_short_link(target_destination)
         
         if not short_link:
-            bot.send_message(
-                message.chat.id, 
-                "⚠️ **GPLinks API Busy!** Please press **⭐ FREE LIKES** again in 10 seconds."
-            )
+            bot.send_message(message.chat.id, "⚠️ Server busy! Press **⭐ FREE LIKES** again in 5 seconds.")
             return
 
         text_msg = (
             "🔓 **FREE LIKES TASK**\n\n"
-            "1️⃣ Neeche diye gaya **`🔗 Open & Complete Link`** par click karke browser mein kholein.\n"
-            "2️⃣ Saare Steps & Ads complete karke **Get Link** button par click karein.\n"
-            "3️⃣ Direct Telegram app mein redirect hone ke baad start/claim message click karein, Verification automatic ho jayega!"
+            "1️⃣ Neeche diye gaya **`🔗 Open & Complete Link`** par click karein.\n"
+            "2️⃣ Steps complete karke **Get Link** button dabayein.\n"
+            "3️⃣ Direct Telegram open karke **START** par click karein, verification ho jayega!"
         )
         
         inline_kb = InlineKeyboardMarkup()
@@ -267,16 +251,13 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, text_msg, reply_markup=inline_kb, parse_mode="Markdown")
 
 def process_user_uid(message, region):
-    if not is_owner(message.from_user) and not check_force_join(message.from_user.id):
-        bot.send_message(message.chat.id, "⚠️ Access Denied! Please rejoin the channel first.", reply_markup=force_join_menu())
-        return
-
     uid = message.text.strip()
     if not uid.isdigit():
-        bot.send_message(message.chat.id, "❌ Invalid UID! Please enter numbers only.")
+        bot.send_message(message.chat.id, "❌ Invalid UID! Numbers only.")
         return
     bot.send_message(message.chat.id, f"🎉 Request Queued for UID: {uid} ({region})!")
 
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
+            
