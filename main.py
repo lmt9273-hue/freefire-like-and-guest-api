@@ -19,11 +19,9 @@ UPI_ID = "7605900368@fam"
 
 GPLINKS_API_KEY = "B127680908b90e463b9216880b34fb36e0a6a9c6"
 TARGET_URL = "https://t.me/hacklinkpc"
-
 QR_CODE_URL = "https://raw.githubusercontent.com/lmt9273-hue/freefire-like-and-guest-api/refs/heads/main/photo_2026-08-23_10-14-11.jpg"
 
 bot = telebot.TeleBot(BOT_TOKEN)
-
 BOT_CONTROL_FILE = "bot_stopped.lock"
 
 def init_db():
@@ -118,10 +116,16 @@ def main_menu():
     markup.add("🎁 REFER & EARN")
     return markup
 
-def region_menu():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add("IND 🇮🇳", "BR 🇧🇷", "US 🇺🇸", "SG 🇸🇬")
-    markup.add("🔙 Main Menu")
+def region_inline_menu():
+    markup = InlineKeyboardMarkup()
+    markup.add(
+        InlineKeyboardButton("IND 🇮🇳", callback_data="region_IND"),
+        InlineKeyboardButton("BR 🇧🇷", callback_data="region_BR")
+    )
+    markup.add(
+        InlineKeyboardButton("US 🇺🇸", callback_data="region_US"),
+        InlineKeyboardButton("SG 🇸🇬", callback_data="region_SG")
+    )
     return markup
 
 @bot.message_handler(commands=['stopbot'])
@@ -129,9 +133,9 @@ def stop_bot_cmd(message):
     if not is_owner(message.from_user):
         return
     open(BOT_CONTROL_FILE, 'w').close()
-    bot.reply_to(message, "🛑 Bot stopped! Sending notification to all users...")
+    bot.reply_to(message, "🛑 Bot Stopped! Sending notification to all users...")
     
-    stop_msg = "⚠️ **NOTICE:** Bot is currently OFF / Under Maintenance by Owner @rohit2848. Please wait until it starts again!"
+    stop_msg = "⚠️ NOTICE: Bot is currently OFF / Under Maintenance by Owner @rohit2848. Please wait until it starts again!"
     threading.Thread(target=notify_all_users, args=(stop_msg,)).start()
 
 @bot.message_handler(commands=['startbot'])
@@ -140,9 +144,9 @@ def start_bot_cmd(message):
         return
     if os.path.exists(BOT_CONTROL_FILE):
         os.remove(BOT_CONTROL_FILE)
-    bot.reply_to(message, "🟢 Bot started! Sending notification to all users...")
+    bot.reply_to(message, "🟢 Bot Started! Sending notification to all users...")
     
-    start_msg = "🎉 **GOOD NEWS:** Bot is back ONLINE! You can now use all commands and get free likes again."
+    start_msg = "🎉 GOOD NEWS: Bot is back ONLINE! You can now use all commands and get free likes again."
     threading.Thread(target=notify_all_users, args=(start_msg,)).start()
 
 @bot.message_handler(commands=['broadcast'])
@@ -153,39 +157,59 @@ def broadcast_cmd(message):
     if not text:
         bot.reply_to(message, "❌ Message likho broadcast karne ke liye! Example: `/broadcast Hello Users`")
         return
-    
     bot.reply_to(message, "📢 Broadcasting message to all users...")
     threading.Thread(target=notify_all_users, args=(text,)).start()
 
+@bot.callback_query_handler(func=lambda call: call.data.startswith('claim_verify') or call.data.startswith('region_'))
+def callback_handler(call):
+    user_id = call.from_user.id
+    if os.path.exists(BOT_CONTROL_FILE):
+        bot.answer_callback_query(call.id, "⚠️ Bot is currently OFF by Owner @rohit2848.", show_alert=True)
+        return
+
+    if call.data == 'claim_verify':
+        bot.answer_callback_query(call.id, "✅ Verification Checked!")
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="🎯 **Verification Done!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
+            reply_markup=region_inline_menu(),
+            parse_mode="Markdown"
+        )
+    elif call.data.startswith('region_'):
+        region = call.data.split('_')[1]
+        msg = bot.send_message(call.message.chat.id, f"🎯 Selected Region: **{region}**\n\n📝 Enter your Free Fire UID:", parse_mode="Markdown")
+        bot.register_next_step_handler(msg, process_user_uid, region)
+        bot.answer_callback_query(call.id)
+
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'video', 'document', 'audio', 'sticker'])
 def all_messages_handler(message):
+    user_id = message.from_user.id
+    text = message.text
+
+    user_data = db_query("SELECT user_id FROM users WHERE user_id = ?", (user_id,), fetchone=True)
+    if not user_data:
+        db_query("INSERT INTO users (user_id, bonus_likes, referred_by) VALUES (?, 0, NULL)", (user_id,), commit=True)
+
     if os.path.exists(BOT_CONTROL_FILE):
         if is_owner(message.from_user):
             if message.text in ['/startbot', '/stopbot']:
                 pass
             else:
                 bot.reply_to(message, "⚠️ Bot abhi OFF hai! Chalu karne ke liye `/startbot` bhejein.")
+        else:
+            bot.reply_to(message, "⚠️ Bot is currently OFF / Under Maintenance by Owner @rohit2848.")
         return
-
-    user_id = message.from_user.id
-    text = message.text
 
     if text and text.startswith('/start'):
         args = text.split()
-        user_data = db_query("SELECT user_id FROM users WHERE user_id = ?", (user_id,), fetchone=True)
-        if not user_data:
-            referrer_id = None
-            if len(args) > 1 and args[1].isdigit():
-                possible_ref = int(args[1])
-                if possible_ref != user_id:
-                    referrer_id = possible_ref
-            
-            db_query("INSERT INTO users (user_id, bonus_likes, referred_by) VALUES (?, 0, ?)", (user_id, referrer_id), commit=True)
-            
-            if referrer_id:
-                db_query("UPDATE users SET bonus_likes = bonus_likes + 1 WHERE user_id = ?", (referrer_id,), commit=True)
+        if len(args) > 1 and args[1].isdigit():
+            possible_ref = int(args[1])
+            if possible_ref != user_id:
+                db_query("UPDATE users SET referred_by = ? WHERE user_id = ? AND referred_by IS NULL", (possible_ref, user_id), commit=True)
+                db_query("UPDATE users SET bonus_likes = bonus_likes + 1 WHERE user_id = ?", (possible_ref,), commit=True)
                 try:
-                    bot.send_message(referrer_id, "🎉 Congratulations! Kisi ne aapke referral link se bot join kiya hai. Aapko +1 Extra Like Bonus mila hai!")
+                    bot.send_message(possible_ref, "🎉 Someone joined via your referral link! You earned +1 Bonus Like!")
                 except Exception:
                     pass
 
@@ -255,21 +279,16 @@ def all_messages_handler(message):
 
         short_link = get_short_link()
         text_msg = (
-            "🔓 UNLOCK FREE LIKES\n\n"
-            "Free Likes paane ke liye neeche दिए गए link ko open karke verify karein:\n\n"
-            f"🔗 Link: {short_link}\n\n"
-            "Complete karne ke baad niche Region choose karein!"
+            "🔓 **UNLOCK FREE LIKES**\n\n"
+            "Free Likes paane ke liye niche **Link** ko open karkeTask verify karein.\n\n"
+            "Complete karne ke baad **`✅ Complete & Claim`** button par click karein!"
         )
-        bot.send_message(message.chat.id, text_msg, reply_markup=region_menu())
+        
+        inline_kb = InlineKeyboardMarkup()
+        inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=short_link))
+        inline_kb.add(InlineKeyboardButton("✅ Complete & Claim Likes", callback_data="claim_verify"))
 
-    elif text in ["IND 🇮🇳", "BR 🇧🇷", "US 🇺🇸", "SG 🇸🇬"]:
-        if not is_subscribed(user_id):
-            bot.reply_to(message, "❌ Access Denied! Pehle @hacklinkpc channel join karein.")
-            return
-
-        region = text.split()[0]
-        msg = bot.send_message(message.chat.id, f"🎯 Selected Region: {region}\n\n📝 Enter your Free Fire UID:")
-        bot.register_next_step_handler(msg, process_user_uid, region)
+        bot.send_message(message.chat.id, text_msg, reply_markup=inline_kb, parse_mode="Markdown")
 
     elif text == "🔙 Main Menu":
         bot.send_message(message.chat.id, "🔙 Main Menu:", reply_markup=main_menu())
@@ -293,5 +312,12 @@ def process_like(message, region, uid):
 
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
-    bot.infinity_polling(skip_pending=True)
-            
+    
+    try:
+        bot.remove_webhook()
+        time.sleep(1)
+    except Exception as e:
+        logger.error(f"Webhook clear error: {e}")
+        
+    bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
+                                     
