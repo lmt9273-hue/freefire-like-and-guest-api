@@ -2,7 +2,6 @@ import threading
 import time
 import os
 import sqlite3
-from datetime import datetime, timedelta
 import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 import logging
@@ -12,7 +11,7 @@ from flask import Flask
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = "8868364202:AAHaeOP1DpoCLopLy5iGmF14ywIB8U3-Jww"
+BOT_TOKEN = "8868364202:AAETx4LSN2jKGdp-Zcs82l6cET0rPLwWPv8"
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7125817223
 OWNER_USERNAME = "rohit2848"
@@ -70,16 +69,28 @@ def is_subscribed(user_id):
     return True
 
 def get_short_link():
+    fallback_link = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={TARGET_URL}"
     try:
         url = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={TARGET_URL}"
         res = requests.get(url, timeout=10).json()
-        if res.get("status") == "success":
+        if res.get("status") == "success" and res.get("shortlink"):
             return res.get("shortlink")
-        elif "shortenedUrl" in res:
+        elif "shortenedUrl" in res and res.get("shortenedUrl"):
             return res.get("shortenedUrl")
     except Exception as e:
         logger.error(f"GPLinks Error: {e}")
-    return f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={TARGET_URL}"
+    return fallback_link
+
+def notify_all_users(text_message):
+    users = db_query("SELECT user_id FROM users", fetchall=True)
+    if not users:
+        return
+    for u in users:
+        try:
+            bot.send_message(u[0], text_message)
+            time.sleep(0.05)
+        except Exception:
+            pass
 
 app = Flask('')
 
@@ -118,7 +129,10 @@ def stop_bot_cmd(message):
     if not is_owner(message.from_user):
         return
     open(BOT_CONTROL_FILE, 'w').close()
-    bot.reply_to(message, "🛑 Bot stopped exclusively by Owner @rohit2848!")
+    bot.reply_to(message, "🛑 Bot stopped! Sending notification to all users...")
+    
+    stop_msg = "⚠️ **NOTICE:** Bot is currently OFF / Under Maintenance by Owner @rohit2848. Please wait until it starts again!"
+    threading.Thread(target=notify_all_users, args=(stop_msg,)).start()
 
 @bot.message_handler(commands=['startbot'])
 def start_bot_cmd(message):
@@ -126,7 +140,10 @@ def start_bot_cmd(message):
         return
     if os.path.exists(BOT_CONTROL_FILE):
         os.remove(BOT_CONTROL_FILE)
-    bot.reply_to(message, "🟢 Bot started/resumed exclusively by Owner @rohit2848!")
+    bot.reply_to(message, "🟢 Bot started! Sending notification to all users...")
+    
+    start_msg = "🎉 **GOOD NEWS:** Bot is back ONLINE! You can now use all commands and get free likes again."
+    threading.Thread(target=notify_all_users, args=(start_msg,)).start()
 
 @bot.message_handler(commands=['broadcast'])
 def broadcast_cmd(message):
@@ -137,17 +154,8 @@ def broadcast_cmd(message):
         bot.reply_to(message, "❌ Message likho broadcast karne ke liye! Example: `/broadcast Hello Users`")
         return
     
-    users = db_query("SELECT user_id FROM users", fetchall=True)
-    success = 0
-    failed = 0
-    for u in users:
-        try:
-            bot.send_message(u[0], text)
-            success += 1
-            time.sleep(0.1)
-        except Exception:
-            failed += 1
-    bot.reply_to(message, f"📢 Broadcast Completed!\n✅ Sent: {success}\n❌ Failed: {failed}")
+    bot.reply_to(message, "📢 Broadcasting message to all users...")
+    threading.Thread(target=notify_all_users, args=(text,)).start()
 
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'video', 'document', 'audio', 'sticker'])
 def all_messages_handler(message):
@@ -286,4 +294,4 @@ def process_like(message, region, uid):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True)
-        
+            
