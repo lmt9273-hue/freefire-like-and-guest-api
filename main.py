@@ -30,7 +30,7 @@ GPLINKS_API_KEY = "b480bd48837b6b20f20db558add38fc763270af"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Active Token Tracker (In Memory)
+# Active Token Tracker
 valid_tokens = {}
 
 def is_owner(user):
@@ -61,15 +61,20 @@ def force_join_menu():
     return markup
 
 def get_short_link(target_url):
-    """Strict GPLinks API fetcher (Returns None if API fails)"""
+    """GPLinks API call with proper Headers & Timeout"""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
     try:
         api_url = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(target_url)}"
-        response = requests.get(api_url, timeout=10)
-        data = response.json()
-        if data.get("status") == "success" and "shortenedUrl" in data:
-            return data["shortenedUrl"]
+        response = requests.get(api_url, headers=headers, timeout=12)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("status") == "success" and "shortenedUrl" in data:
+                return data["shortenedUrl"]
     except Exception as e:
-        logger.error(f"GPLinks API Error: {e}")
+        logger.error(f"GPLinks API Fetch Failed: {e}")
     return None
 
 def get_qr_url(amount):
@@ -201,7 +206,7 @@ def all_messages_handler(message):
         if len(args) > 1 and args[1].startswith('claim_'):
             token = args[1]
             if token in valid_tokens and valid_tokens[token] == user_id:
-                del valid_tokens[token]  # Single-use token logic
+                del valid_tokens[token] # Single-use token
                 bot.send_message(
                     message.chat.id,
                     "🎉 **GPLinks Task Verified Successfully!**\n\nAb apna **Free Fire Region** choose karein:",
@@ -209,7 +214,7 @@ def all_messages_handler(message):
                     parse_mode="Markdown"
                 )
             else:
-                bot.send_message(message.chat.id, "❌ **Invalid ya Expired Link!** Please naya task start karein.")
+                bot.send_message(message.chat.id, "❌ **Invalid ya Expired Task!** Please naya task generate karein.")
             return
 
         welcome_text = "✨ Welcome to Free Fire VIP Likes Bot!\n\n👇 Tap an option below:"
@@ -235,26 +240,24 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, text_msg, reply_markup=markup, parse_mode="Markdown")
 
     elif text == "⭐ FREE LIKES":
-        # Generate Secret One-Time Token for User
         token = f"claim_{secrets.token_hex(4)}"
         valid_tokens[token] = user_id
         
         target_destination = f"https://t.me/{BOT_USERNAME}?start={token}"
         short_link = get_short_link(target_destination)
         
-        if not short_link:
-            bot.send_message(message.chat.id, "⚠️ **Server Error!** GPLinks API is temporarily unreachable. Please try again in 1 minute.")
-            return
+        # If GPLinks API fails, fall back to direct token to prevent total bot blocking
+        final_link = short_link if short_link else target_destination
 
         text_msg = (
             "🔓 **FREE LIKES TASK**\n\n"
-            "1️⃣ Neeche diye gaye **`🔗 Open & Complete Link`** par click karke browser mein link kholein.\n"
-            "2️⃣ GPLinks ke saare Ads & Steps Bypass karke **Get Link** dabayein.\n"
-            "3️⃣ Direct bypass hone par aap auto-verify ho jaoge!"
+            "1️⃣ Neeche diye gaya **`🔗 Open & Complete Link`** open karein.\n"
+            "2️⃣ Link complete karke **Get Link** par click karein.\n"
+            "3️⃣ Direct return hone par verification automatic ho jayega!"
         )
         
         inline_kb = InlineKeyboardMarkup()
-        inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=short_link))
+        inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=final_link))
 
         bot.send_message(message.chat.id, text_msg, reply_markup=inline_kb, parse_mode="Markdown")
 
@@ -272,4 +275,4 @@ def process_user_uid(message, region):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-        
+                
