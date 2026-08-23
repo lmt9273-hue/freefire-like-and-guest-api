@@ -1,6 +1,7 @@
 import threading
 import time
 import os
+import sqlite3
 from datetime import datetime, timedelta
 import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
@@ -18,12 +19,43 @@ OWNER_ID = 7125817223
 OWNER_USERNAME = "rohit2848"
 UPI_ID = "7605900368@fam"
 
-# Raw GitHub URL for QR Code Image
+# GPLinks Shortener Config
+GPLINKS_API_KEY = "B127680908b90e463b9216880b34fb36e0a6a9c6"
+TARGET_URL = "https://t.me/hacklinkpc"
+
 QR_CODE_URL = "https://raw.githubusercontent.com/lmt9273-hue/freefire-like-and-guest-api/refs/heads/main/photo_2026-08-23_10-14-11.jpg"
 
 bot = telebot.TeleBot(BOT_TOKEN)
-like_tracker = {}
-user_database = set()
+
+# Database Setup
+def init_db():
+    conn = sqlite3.connect('bot_data.db', check_same_thread=False)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            bonus_likes INTEGER DEFAULT 0,
+            referred_by INTEGER
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def db_query(query, params=(), fetchone=False, fetchall=False, commit=False):
+    conn = sqlite3.connect('bot_data.db', check_same_thread=False)
+    cursor = conn.cursor()
+    cursor.execute(query, params)
+    res = None
+    if fetchone:
+        res = cursor.fetchone()
+    elif fetchall:
+        res = cursor.fetchall()
+    if commit:
+        conn.commit()
+    conn.close()
+    return res
 
 def is_subscribed(user_id):
     for ch in REQUIRED_CHANNELS:
@@ -34,6 +66,16 @@ def is_subscribed(user_id):
         except Exception:
             return False
     return True
+
+def get_short_link():
+    try:
+        url = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={TARGET_URL}"
+        res = requests.get(url, timeout=10).json()
+        if res.get("status") == "success":
+            return res.get("shortlink")
+    except Exception as e:
+        logger.error(f"GPLinks Error: {e}")
+    return TARGET_URL
 
 # Flask Server for Render
 app = Flask('')
@@ -46,17 +88,6 @@ def run_web():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
-def reset_limits():
-    while True:
-        now_utc = datetime.utcnow()
-        next_reset = (now_utc + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-        sleep_seconds = (next_reset - now_utc).total_seconds()
-        time.sleep(sleep_seconds)
-        like_tracker.clear()
-        logger.info("Limits reset executed.")
-
-threading.Thread(target=reset_limits, daemon=True).start()
-
 def call_api(region, uid):
     url = f"https://freefire-like-and-guest-api-by-star.onrender.com/like?uid={uid}&region={region}"
     try:
@@ -67,30 +98,49 @@ def call_api(region, uid):
     except Exception:
         return {"error": "API Failed. Try again later."}
 
-def get_user_limit(user_id):
-    return 999999999 if user_id == OWNER_ID else 30
-
 def main_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add("⭐ FREE LIKES", "💎 BUY VIP / PREMIUM")
+    markup.add("🎁 REFER & EARN")
     return markup
 
 def region_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add("IND 🇮🇳", "BR 🇧🇷", "US 🇺🇸", "SG 🇸🇬")
+    markup.add("🔙 Main Menu")
     return markup
 
 @bot.message_handler(commands=['start'])
 def start_command(message):
-    if not is_subscribed(message.from_user.id):
+    user_id = message.from_user.id
+    args = message.text.split()
+
+    # Create user if not exists
+    user_data = db_query("SELECT user_id FROM users WHERE user_id = ?", (user_id,), fetchone=True)
+    if not user_data:
+        referrer_id = None
+        if len(args) > 1 and args[1].isdigit():
+            possible_ref = int(args[1])
+            if possible_ref != user_id:
+                referrer_id = possible_ref
+        
+        db_query("INSERT INTO users (user_id, bonus_likes, referred_by) VALUES (?, 0, ?)", (user_id, referrer_id), commit=True)
+        
+        if referrer_id:
+            db_query("UPDATE users SET bonus_likes = bonus_likes + 1 WHERE user_id = ?", (referrer_id,), commit=True)
+            try:
+                bot.send_message(referrer_id, "🎉 Congratulations! Kisi ne aapke referral link se bot join kiya hai. Aapko +1 Extra Like Bonus mila hai!")
+            except Exception:
+                pass
+
+    if not is_subscribed(user_id):
         bot.reply_to(message, "❌ Pehle humara channel @hacklinkpc join karein!")
         return
 
-    user_database.add(message.from_user.id)
     welcome_text = (
-        "✨ **Welcome to VIP Like Services, Leader!**\n\n"
-        "🎒 **I'm Free Fire Instant Likes Bot!**\n"
-        "⚡ Fast, Safe & 24/7 Active Bot.\n"
+        "✨ Welcome to VIP Like Services, Leader!\n\n"
+        "🎒 I'm Free Fire Instant Likes Bot!\n"
+        "⚡ Fast, Safe & 24/7 Active Bot.\n\n"
         "👇 Tap an option below to get started!"
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu())
@@ -102,17 +152,17 @@ def buy_vip_click(message):
         return
 
     text = (
-        "💎 **VIP & PREMIUM PLANS**\n\n"
-        "✨ **Benefits:**\n"
+        "💎 VIP & PREMIUM PLANS\n\n"
+        "✨ Benefits:\n"
         "• Unlimited Daily Likes\n"
         "• Instant API Processing\n"
         "• Priority Support\n\n"
-        "💸 **Pricing:**\n"
+        "💸 Pricing:\n"
         "• 1 Day VIP: ₹20\n"
         "• 7 Days VIP: ₹100\n"
         "• Monthly VIP: ₹300\n\n"
-        f"📱 **UPI ID:** `{UPI_ID}`\n\n"
-        "💳 **How to Pay:**\n"
+        f"📱 UPI ID: {UPI_ID}\n\n"
+        "💳 How to Pay:\n"
         "1. Scan the QR code above or copy the UPI ID.\n"
         "2. Make payment and take a screenshot.\n"
         "3. Click below to send proof along with your User ID."
@@ -120,10 +170,30 @@ def buy_vip_click(message):
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton("📩 Send Proof to Owner", url=f"https://t.me/{OWNER_USERNAME}"))
     try:
-        bot.send_photo(message.chat.id, photo=QR_CODE_URL, caption=text, reply_markup=markup, parse_mode="Markdown")
+        bot.send_photo(message.chat.id, photo=QR_CODE_URL, caption=text, reply_markup=markup)
     except Exception as e:
         logger.error(f"Photo error: {e}")
-        bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
+        bot.send_message(message.chat.id, text, reply_markup=markup)
+
+@bot.message_handler(func=lambda message: message.text == "🎁 REFER & EARN")
+def refer_earn_click(message):
+    user_id = message.from_user.id
+    if not is_subscribed(user_id):
+        bot.reply_to(message, "❌ Access Denied! Pehle @hacklinkpc channel join karein.")
+        return
+
+    user_info = db_query("SELECT bonus_likes FROM users WHERE user_id = ?", (user_id,), fetchone=True)
+    bonus_likes = user_info[0] if user_info else 0
+
+    bot_info = bot.get_me()
+    referral_link = f"https://t.me/{bot_info.username}?start={user_id}"
+    text = (
+        "🎁 REFERRAL SYSTEM\n\n"
+        f"⭐ Aapke Paas Extra Bonus Likes Hain: {bonus_likes}\n\n"
+        "Apne doston ko bot share karein! Jab bhi koi dost aapke link se join karega, aapko 1 Extra Like Chane Ka Chance milega!\n\n"
+        f"🔗 Aapka Referral Link:\n{referral_link}"
+    )
+    bot.send_message(message.chat.id, text)
 
 @bot.message_handler(func=lambda message: message.text == "⭐ FREE LIKES")
 def free_likes_click(message):
@@ -131,7 +201,15 @@ def free_likes_click(message):
         bot.reply_to(message, "❌ Access Denied! Pehle @hacklinkpc channel join karein.")
         return
 
-    bot.send_message(message.chat.id, "⭐ **FREE LIKES MENU**\nSelect your region:", reply_markup=region_menu())
+    short_link = get_short_link()
+    
+    text = (
+        "🔓 UNLOCK FREE LIKES\n\n"
+        "Free Likes paane ke liye neeche diye gaye link ko open karke verify karein:\n\n"
+        f"🔗 Link: {short_link}\n\n"
+        "Complete karne ke baad niche Region choose karein!"
+    )
+    bot.send_message(message.chat.id, text, reply_markup=region_menu())
 
 @bot.message_handler(func=lambda message: message.text in ["IND 🇮🇳", "BR 🇧🇷", "US 🇺🇸", "SG 🇸🇬"])
 def ask_uid(message):
@@ -140,7 +218,7 @@ def ask_uid(message):
         return
 
     region = message.text.split()[0]
-    msg = bot.send_message(message.chat.id, f"🎯 **Selected Region:** `{region}`\n\n📝 Enter your Free Fire **UID**:")
+    msg = bot.send_message(message.chat.id, f"🎯 Selected Region: {region}\n\n📝 Enter your Free Fire UID:")
     bot.register_next_step_handler(msg, process_user_uid, region)
 
 def process_user_uid(message, region):
@@ -156,7 +234,7 @@ def process_like(message, region, uid):
     if "error" in response or response.get("status") != "success":
         bot.reply_to(message, f"❌ Request Failed: {response.get('error', 'Unknown Error')}")
         return
-    bot.reply_to(message, f"🎉 Likes Sent Successfully to UID: `{uid}`!")
+    bot.reply_to(message, f"🎉 Likes Sent Successfully to UID: {uid}!")
 
 @bot.message_handler(func=lambda message: message.text == "🔙 Main Menu")
 def back_menu(message):
@@ -165,4 +243,3 @@ def back_menu(message):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True)
-                       
