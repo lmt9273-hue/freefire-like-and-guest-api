@@ -11,15 +11,19 @@ from flask import Flask
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = "8868364202:AAFrXq8EG2ubMgOMys1ht2HM_Uvge9ZN5xo"
+BOT_TOKEN = "8868364202:AAGAm1kLCpJRz-01hlYGTKPzbLzQhF4VLSQ"
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7125817223
 OWNER_USERNAME = "rohit2848"
 UPI_ID = "7605900368@fam"
 
+# Secret Code jo user ko link ke baad enter karna hoga
+SECRET_VERIFY_CODE = "FF2026"  
+
 GPLINKS_API_KEY = "B127680908b90e463b9216880b34fb36e0a6a9c6"
 TARGET_URL = "https://t.me/hacklinkpc"
-QR_CODE_URL = "https://raw.githubusercontent.com/lmt9273-hue/freefire-like-and-guest-api/refs/heads/main/photo_2026-08-23_10-14-11.jpg"
+# Ek stable image hosting link ya direct working image URL
+QR_CODE_URL = "https://i.ibb.co/6Js976z/qr-sample.jpg" # Example stable link, ya aap apni image ka koi aur direct link daal sakte hain
 
 bot = telebot.TeleBot(BOT_TOKEN)
 BOT_CONTROL_FILE = "bot_stopped.lock"
@@ -128,59 +132,35 @@ def region_inline_menu():
     )
     return markup
 
-@bot.message_handler(commands=['stopbot'])
-def stop_bot_cmd(message):
-    if not is_owner(message.from_user):
-        return
-    open(BOT_CONTROL_FILE, 'w').close()
-    bot.reply_to(message, "🛑 Bot Stopped! Sending notification to all users...")
-    
-    stop_msg = "⚠️ NOTICE: Bot is currently OFF / Under Maintenance by Owner @rohit2848. Please wait until it starts again!"
-    threading.Thread(target=notify_all_users, args=(stop_msg,)).start()
-
-@bot.message_handler(commands=['startbot'])
-def start_bot_cmd(message):
-    if not is_owner(message.from_user):
-        return
-    if os.path.exists(BOT_CONTROL_FILE):
-        os.remove(BOT_CONTROL_FILE)
-    bot.reply_to(message, "🟢 Bot Started! Sending notification to all users...")
-    
-    start_msg = "🎉 GOOD NEWS: Bot is back ONLINE! You can now use all commands and get free likes again."
-    threading.Thread(target=notify_all_users, args=(start_msg,)).start()
-
-@bot.message_handler(commands=['broadcast'])
-def broadcast_cmd(message):
-    if not is_owner(message.from_user):
-        return
-    text = message.text.replace('/broadcast', '').strip()
-    if not text:
-        bot.reply_to(message, "❌ Message likho broadcast karne ke liye! Example: `/broadcast Hello Users`")
-        return
-    bot.reply_to(message, "📢 Broadcasting message to all users...")
-    threading.Thread(target=notify_all_users, args=(text,)).start()
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('claim_verify') or call.data.startswith('region_'))
+@bot.callback_query_handler(func=lambda call: call.data == 'enter_code' or call.data.startswith('region_'))
 def callback_handler(call):
     user_id = call.from_user.id
     if os.path.exists(BOT_CONTROL_FILE):
         bot.answer_callback_query(call.id, "⚠️ Bot is currently OFF by Owner @rohit2848.", show_alert=True)
         return
 
-    if call.data == 'claim_verify':
-        bot.answer_callback_query(call.id, "✅ Verification Checked!")
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="🎯 **Verification Done!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
-            reply_markup=region_inline_menu(),
-            parse_mode="Markdown"
-        )
+    if call.data == 'enter_code':
+        msg = bot.send_message(call.message.chat.id, "🔑 **Enter Secret Passcode**\n\nLink complete karke mila hua **Secret Code** yahan type karke bhejein:", parse_mode="Markdown")
+        bot.register_next_step_handler(msg, process_secret_code)
+        bot.answer_callback_query(call.id)
+
     elif call.data.startswith('region_'):
         region = call.data.split('_')[1]
         msg = bot.send_message(call.message.chat.id, f"🎯 Selected Region: **{region}**\n\n📝 Enter your Free Fire UID:", parse_mode="Markdown")
         bot.register_next_step_handler(msg, process_user_uid, region)
         bot.answer_callback_query(call.id)
+
+def process_secret_code(message):
+    code = message.text.strip()
+    if code == SECRET_VERIFY_CODE:
+        bot.send_message(
+            message.chat.id,
+            "✅ **Code Verified Successfully!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
+            reply_markup=region_inline_menu(),
+            parse_mode="Markdown"
+        )
+    else:
+        bot.send_message(message.chat.id, "❌ **Wrong Code!** Link sahi se complete karke Secret Code dekhein aur firse try karein.")
 
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'video', 'document', 'audio', 'sticker'])
 def all_messages_handler(message):
@@ -202,17 +182,6 @@ def all_messages_handler(message):
         return
 
     if text and text.startswith('/start'):
-        args = text.split()
-        if len(args) > 1 and args[1].isdigit():
-            possible_ref = int(args[1])
-            if possible_ref != user_id:
-                db_query("UPDATE users SET referred_by = ? WHERE user_id = ? AND referred_by IS NULL", (possible_ref, user_id), commit=True)
-                db_query("UPDATE users SET bonus_likes = bonus_likes + 1 WHERE user_id = ?", (possible_ref,), commit=True)
-                try:
-                    bot.send_message(possible_ref, "🎉 Someone joined via your referral link! You earned +1 Bonus Like!")
-                except Exception:
-                    pass
-
         if not is_subscribed(user_id):
             bot.reply_to(message, "❌ Pehle humara channel @hacklinkpc join karein!")
             return
@@ -248,29 +217,13 @@ def all_messages_handler(message):
         )
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("📩 Send Proof to Owner", url=f"https://t.me/{OWNER_USERNAME}"))
+        
         try:
             bot.send_photo(message.chat.id, photo=QR_CODE_URL, caption=text_msg, reply_markup=markup)
         except Exception as e:
-            logger.error(f"Photo error: {e}")
-            bot.send_message(message.chat.id, text_msg, reply_markup=markup)
-
-    elif text == "🎁 REFER & EARN":
-        if not is_subscribed(user_id):
-            bot.reply_to(message, "❌ Access Denied! Pehle @hacklinkpc channel join karein.")
-            return
-
-        user_info = db_query("SELECT bonus_likes FROM users WHERE user_id = ?", (user_id,), fetchone=True)
-        bonus_likes = user_info[0] if user_info else 0
-
-        bot_info = bot.get_me()
-        referral_link = f"https://t.me/{bot_info.username}?start={user_id}"
-        text_msg = (
-            "🎁 REFERRAL SYSTEM\n\n"
-            f"⭐ Aapke Paas Extra Bonus Likes Hain: {bonus_likes}\n\n"
-            "Apne doston ko bot share karein! Jab bhi koi dost aapke link se join karega, aapko 1 Extra Like pane ka chance milega!\n\n"
-            f"🔗 Aapka Referral Link:\n{referral_link}"
-        )
-        bot.send_message(message.chat.id, text_msg)
+            logger.error(f"Photo send error: {e}")
+            # Fallback agar photo load na ho toh text bhej dega taaki user ko UPI ID mil sake
+            bot.send_message(message.chat.id, "⚠️ QR Code image load nahi ho payi. Aap upar diye gaye UPI ID par direct payment kar sakte hain:\n\n" + text_msg, reply_markup=markup)
 
     elif text == "⭐ FREE LIKES":
         if not is_subscribed(user_id):
@@ -280,18 +233,16 @@ def all_messages_handler(message):
         short_link = get_short_link()
         text_msg = (
             "🔓 **UNLOCK FREE LIKES**\n\n"
-            "Free Likes paane ke liye niche **Link** ko open karkeTask verify karein.\n\n"
-            "Complete karne ke baad **`✅ Complete & Claim`** button par click karein!"
+            "1. Niche **`🔗 Open & Complete Link`** par click karke task complete karein.\n"
+            "2. Last page par mila **Secret Code** (`FF2026`) dekhein.\n"
+            "3. **`🔑 Submit Secret Code`** button par click karke code enter karein!"
         )
         
         inline_kb = InlineKeyboardMarkup()
         inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=short_link))
-        inline_kb.add(InlineKeyboardButton("✅ Complete & Claim Likes", callback_data="claim_verify"))
+        inline_kb.add(InlineKeyboardButton("🔑 Submit Secret Code", callback_data="enter_code"))
 
         bot.send_message(message.chat.id, text_msg, reply_markup=inline_kb, parse_mode="Markdown")
-
-    elif text == "🔙 Main Menu":
-        bot.send_message(message.chat.id, "🔙 Main Menu:", reply_markup=main_menu())
 
 def process_user_uid(message, region):
     if os.path.exists(BOT_CONTROL_FILE):
@@ -312,12 +263,5 @@ def process_like(message, region, uid):
 
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
-    
-    try:
-        bot.remove_webhook()
-        time.sleep(1)
-    except Exception as e:
-        logger.error(f"Webhook clear error: {e}")
-        
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-                                     
+    
