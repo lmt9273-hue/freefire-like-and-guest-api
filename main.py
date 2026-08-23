@@ -13,11 +13,13 @@ logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
 BOT_TOKEN = "8868364202:AAHmY3fFncwmpDjDjbwCWzcg-cuq-xCNbAI"
-REQUIRED_CHANNELS = ["@hacklinkpc"]
-OWNER_ID = 7125817223
-OWNER_USERNAME = "rohit2848"  # Telegram Username
 
-# AAPKA EXACT FAMAPP UPI ID & DETAILS
+# ALLOWED ADMIN DETAILS (Aapki ID aur Username)
+ALLOWED_USER_ID = 7125817223  
+ALLOWED_USERNAME = "rohitx_2848"  # Small letters mein verification ke liye
+
+DEV_MODE = True  # True = Sirf aap chala payenge
+
 UPI_ID = "7605900368@fam"
 ACCOUNT_NAME = "Amlan malik"
 
@@ -27,56 +29,32 @@ TARGET_URL = f"https://t.me/{BOT_USERNAME}?start=claim"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Dynamic QR code generator for your exact FamApp UPI ID
+def is_authorized(user):
+    """User ID ya Username mein se koi ek bhi match hoga toh bot access mil jayega."""
+    if not DEV_MODE:
+        return True
+    
+    # User ID Check
+    if user.id == ALLOWED_USER_ID:
+        return True
+        
+    # Username Check
+    if user.username and user.username.lower() == ALLOWED_USERNAME:
+        return True
+        
+    return False
+
 def get_qr_url(amount):
     upi_string = f"upi://pay?pa={UPI_ID}&pn=Amlan%20malik&am={amount}&cu=INR"
     return f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={urllib.parse.quote(upi_string)}"
 
 user_clicked_link = set()
 
-def init_db():
-    conn = sqlite3.connect('bot_data.db', check_same_thread=False)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            referrals INTEGER DEFAULT 0,
-            referred_by INTEGER
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-init_db()
-
-def is_subscribed(user_id):
-    for ch in REQUIRED_CHANNELS:
-        try:
-            member = bot.get_chat_member(ch, user_id)
-            if member.status not in ['creator', 'administrator', 'member']:
-                return False
-        except Exception:
-            return False
-    return True
-
-def get_short_link():
-    fallback_link = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(TARGET_URL)}"
-    try:
-        url = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(TARGET_URL)}"
-        res = requests.get(url, timeout=10).json()
-        if res.get("status") == "success" and res.get("shortlink"):
-            return res.get("shortlink")
-        elif "shortenedUrl" in res and res.get("shortenedUrl"):
-            return res.get("shortenedUrl")
-    except Exception as e:
-        logger.error(f"GPLinks Error: {e}")
-    return fallback_link
-
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot Online!"
+    return "Bot is Running!"
 
 def run_web():
     port = int(os.environ.get("PORT", 8080))
@@ -100,8 +78,13 @@ def region_inline_menu():
     )
     return markup
 
+# --- CALLBACK QUERY HANDLER ---
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
+    if not is_authorized(call.from_user):
+        bot.answer_callback_query(call.id, "⚠️ Bot is under maintenance for public users!", show_alert=True)
+        return
+
     user_id = call.from_user.id
 
     if call.data == 'track_open':
@@ -129,7 +112,6 @@ def callback_handler(call):
         plan_name = parts[2]
         
         bot.answer_callback_query(call.id)
-        
         qr_image_url = get_qr_url(amount)
         
         caption = (
@@ -139,7 +121,7 @@ def callback_handler(call):
             f"💰 **Amount:** `₹{amount}`\n"
             f"💳 **UPI ID:** `{UPI_ID}`\n\n"
             f"📥 **Scan QR Code or Pay directly on UPI ID.**\n"
-            f"📤 **Send payment screenshot to:** @{OWNER_USERNAME}\n\n"
+            f"📤 **Send payment screenshot to:** @{ALLOWED_USERNAME}\n\n"
             f"⚡ *VIP activates instantly after verification!*"
         )
         
@@ -155,19 +137,17 @@ def callback_handler(call):
         msg = bot.send_message(call.message.chat.id, f"🎯 Selected Region: **{region}**\n\n📝 Enter your Free Fire UID:", parse_mode="Markdown")
         bot.register_next_step_handler(msg, process_user_uid, region)
 
+# --- MESSAGE HANDLER ---
 @bot.message_handler(func=lambda message: True)
 def all_messages_handler(message):
-    user_id = message.from_user.id
+    if not is_authorized(message.from_user):
+        bot.reply_to(message, "🛠️ **Bot is under maintenance.**\nAccess restricted by owner.")
+        return
+
     text = message.text
+    user_id = message.from_user.id
 
     if text and text.startswith('/start'):
-        if not is_subscribed(user_id):
-            bot.reply_to(message, "❌ Pehle humara channel @hacklinkpc join karein!")
-            return
-
-        if "claim" in text:
-            user_clicked_link.add(user_id)
-
         welcome_text = (
             "✨ Welcome to Free Fire VIP Likes Bot!\n\n"
             "⚡ Fast, Safe & 24/7 Active Bot.\n\n"
@@ -176,10 +156,6 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu())
 
     elif text == "🎁 REFER & EARN":
-        if not is_subscribed(user_id):
-            bot.reply_to(message, "❌ Access Denied! Pehle @hacklinkpc channel join karein.")
-            return
-
         referral_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
         ref_text = (
             "🎁 **REFER & EARN SYSTEM**\n\n"
@@ -190,10 +166,6 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, ref_text, parse_mode="Markdown")
 
     elif text == "💎 BUY VIP / PREMIUM":
-        if not is_subscribed(user_id):
-            bot.reply_to(message, "❌ Access Denied! Pehle @hacklinkpc channel join karein.")
-            return
-
         text_msg = (
             "💎 **BUY VIP / PREMIUM PACKAGES**\n\n"
             "💵 1 Day VIP = ₹10\n"
@@ -217,11 +189,7 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, text_msg, reply_markup=markup, parse_mode="Markdown")
 
     elif text == "⭐ FREE LIKES":
-        if not is_subscribed(user_id):
-            bot.reply_to(message, "❌ Access Denied! Pehle @hacklinkpc channel join karein.")
-            return
-
-        short_link = get_short_link()
+        short_link = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(TARGET_URL)}"
         text_msg = (
             "🔓 **UNLOCK FREE LIKES**\n\n"
             "1️⃣ Pehle **`🔗 Open & Complete Link`** par click karke task poora karein.\n"
@@ -244,4 +212,4 @@ def process_user_uid(message, region):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-        
+    
