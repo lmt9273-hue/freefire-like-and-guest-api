@@ -84,10 +84,10 @@ def region_menu():
 
 @bot.message_handler(commands=['start'])
 def start_command(message):
-        if not is_subscribed(message.from_user.id):
+    if not is_subscribed(message.from_user.id):
         bot.reply_to(message, "❌ Pehle humara channel @hacklinkpc join karein!")
         return
-    
+
     user_database.add(message.from_user.id)
     welcome_text = (
         "✨ **Welcome to VIP Like Services, Leader!**\n\n"
@@ -95,13 +95,14 @@ def start_command(message):
         "⚡ Fast, Safe & 24/7 Active Bot.\n"
         "👇 Tap an option below to get started!"
     )
-    bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu(), parse_mode="Markdown")
+    bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu())
 
 @bot.message_handler(func=lambda message: message.text == "💎 BUY VIP / PREMIUM")
 def buy_vip_click(message):
-        if not is_subscribed(message.from_user.id):
+    if not is_subscribed(message.from_user.id):
         bot.reply_to(message, "❌ Access Denied! Pehle @hacklinkpc channel join karein.")
         return
+
     
     text = (
         "💎 **VIP & PREMIUM PLANS**\n\n"
