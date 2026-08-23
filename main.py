@@ -12,13 +12,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
-BOT_TOKEN = "8868364202:AAHmY3fFncwmpDjDjbwCWzcg-cuq-xCNbAI"
+BOT_TOKEN = "8868364202:AAFhI1n-PJ-vS0x_OWZlpwN0k7m4GSSLRLI"
 
-# ALLOWED ADMIN DETAILS (Aapki ID aur Username)
+# ADMIN DETAILS
 ALLOWED_USER_ID = 7125817223  
-ALLOWED_USERNAME = "rohitx_2848"  # Small letters mein verification ke liye
+ALLOWED_USERNAME = "rohitx_2848"
 
-DEV_MODE = True  # True = Sirf aap chala payenge
+# Global Variable to track Bot State
+is_bot_stopped = False
 
 UPI_ID = "7605900368@fam"
 ACCOUNT_NAME = "Amlan malik"
@@ -29,19 +30,12 @@ TARGET_URL = f"https://t.me/{BOT_USERNAME}?start=claim"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-def is_authorized(user):
-    """User ID ya Username mein se koi ek bhi match hoga toh bot access mil jayega."""
-    if not DEV_MODE:
-        return True
-    
-    # User ID Check
+def is_owner(user):
+    """Check if the user is the owner using ID or Username"""
     if user.id == ALLOWED_USER_ID:
         return True
-        
-    # Username Check
     if user.username and user.username.lower() == ALLOWED_USERNAME:
         return True
-        
     return False
 
 def get_qr_url(amount):
@@ -54,7 +48,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is Running!"
+    return "Bot status running!"
 
 def run_web():
     port = int(os.environ.get("PORT", 8080))
@@ -81,8 +75,11 @@ def region_inline_menu():
 # --- CALLBACK QUERY HANDLER ---
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
-    if not is_authorized(call.from_user):
-        bot.answer_callback_query(call.id, "⚠️ Bot is under maintenance for public users!", show_alert=True)
+    global is_bot_stopped
+    
+    # Public Check: Stop hone par normal users block rahenge
+    if is_bot_stopped and not is_owner(call.from_user):
+        bot.answer_callback_query(call.id, "🛠️ Bot is currently stopped by owner!", show_alert=True)
         return
 
     user_id = call.from_user.id
@@ -140,12 +137,25 @@ def callback_handler(call):
 # --- MESSAGE HANDLER ---
 @bot.message_handler(func=lambda message: True)
 def all_messages_handler(message):
-    if not is_authorized(message.from_user):
-        bot.reply_to(message, "🛠️ **Bot is under maintenance.**\nAccess restricted by owner.")
-        return
-
+    global is_bot_stopped
     text = message.text
     user_id = message.from_user.id
+
+    # --- OWNER SPECIAL COMMANDS ---
+    if is_owner(message.from_user):
+        if text == "/stopbot":
+            is_bot_stopped = True
+            bot.reply_to(message, "🛑 **Bot Stopped Successfully!**\nAb koi bhi user bot use nahi kar payega.")
+            return
+        elif text == "/startbot":
+            is_bot_stopped = False
+            bot.reply_to(message, "🟢 **Bot Started Successfully!**\nAb sabhi users bot use kar sakte hain.")
+            return
+
+    # Check if Bot is Stopped for Normal Users
+    if is_bot_stopped and not is_owner(message.from_user):
+        bot.reply_to(message, "🛠️ **Bot is under maintenance.**\nAccess restricted by owner.")
+        return
 
     if text and text.startswith('/start'):
         welcome_text = (
