@@ -30,7 +30,7 @@ GPLINKS_API_KEY = "b480bd48837b6b20f20db558add38fc763270af"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Active Token Tracker
+# Dynamic Active Verification Tokens
 valid_tokens = {}
 
 def is_owner(user):
@@ -61,20 +61,19 @@ def force_join_menu():
     return markup
 
 def get_short_link(target_url):
-    """GPLinks API call with proper Headers & Timeout"""
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
+    """Strict GPLinks shortener generator"""
+    api_url = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(target_url)}"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     try:
-        api_url = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(target_url)}"
-        response = requests.get(api_url, headers=headers, timeout=12)
-        
+        response = requests.get(api_url, headers=headers, timeout=10)
         if response.status_code == 200:
             data = response.json()
             if data.get("status") == "success" and "shortenedUrl" in data:
                 return data["shortenedUrl"]
+            elif "shortenedUrl" in data:
+                return data["shortenedUrl"]
     except Exception as e:
-        logger.error(f"GPLinks API Fetch Failed: {e}")
+        logger.error(f"GPLinks Fetch Failure: {e}")
     return None
 
 def get_qr_url(amount):
@@ -119,7 +118,7 @@ def callback_handler(call):
         bot.answer_callback_query(call.id, "🛠️ Bot is under maintenance!", show_alert=True)
         return
 
-    # Verify Button Action
+    # Force Join Check
     if call.data == 'check_join_again':
         if check_force_join(user_id):
             bot.answer_callback_query(call.id, "✅ Verified! Welcome back.")
@@ -202,11 +201,11 @@ def all_messages_handler(message):
     if text and text.startswith('/start'):
         args = text.split()
         
-        # Check if Start contains Secret Claim Token
+        # When User completes GPLinks & clicks 'Get Link', it redirects back with claim_ token
         if len(args) > 1 and args[1].startswith('claim_'):
             token = args[1]
             if token in valid_tokens and valid_tokens[token] == user_id:
-                del valid_tokens[token] # Single-use token
+                del valid_tokens[token]  # One-time verification consume
                 bot.send_message(
                     message.chat.id,
                     "🎉 **GPLinks Task Verified Successfully!**\n\nAb apna **Free Fire Region** choose karein:",
@@ -214,7 +213,7 @@ def all_messages_handler(message):
                     parse_mode="Markdown"
                 )
             else:
-                bot.send_message(message.chat.id, "❌ **Invalid ya Expired Task!** Please naya task generate karein.")
+                bot.send_message(message.chat.id, "❌ **Invalid ya Expired Task!** Please naya task start karein.")
             return
 
         welcome_text = "✨ Welcome to Free Fire VIP Likes Bot!\n\n👇 Tap an option below:"
@@ -240,24 +239,30 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, text_msg, reply_markup=markup, parse_mode="Markdown")
 
     elif text == "⭐ FREE LIKES":
+        # Create a unique single-use token per user
         token = f"claim_{secrets.token_hex(4)}"
         valid_tokens[token] = user_id
         
+        # Destination link after GPLinks steps completion
         target_destination = f"https://t.me/{BOT_USERNAME}?start={token}"
         short_link = get_short_link(target_destination)
         
-        # If GPLinks API fails, fall back to direct token to prevent total bot blocking
-        final_link = short_link if short_link else target_destination
+        if not short_link:
+            bot.send_message(
+                message.chat.id, 
+                "⚠️ **GPLinks API Busy!** Please press **⭐ FREE LIKES** again in 10 seconds."
+            )
+            return
 
         text_msg = (
             "🔓 **FREE LIKES TASK**\n\n"
-            "1️⃣ Neeche diye gaya **`🔗 Open & Complete Link`** open karein.\n"
-            "2️⃣ Link complete karke **Get Link** par click karein.\n"
-            "3️⃣ Direct return hone par verification automatic ho jayega!"
+            "1️⃣ Neeche diye gaya **`🔗 Open & Complete Link`** par click karke browser mein kholein.\n"
+            "2️⃣ Saare Steps & Ads complete karke **Get Link** button par click karein.\n"
+            "3️⃣ Direct Telegram app mein redirect hone ke baad start/claim message click karein, Verification automatic ho jayega!"
         )
         
         inline_kb = InlineKeyboardMarkup()
-        inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=final_link))
+        inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=short_link))
 
         bot.send_message(message.chat.id, text_msg, reply_markup=inline_kb, parse_mode="Markdown")
 
@@ -275,4 +280,3 @@ def process_user_uid(message, region):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-                
