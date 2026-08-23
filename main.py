@@ -55,24 +55,25 @@ def force_join_menu():
     return markup
 
 def get_short_link(target_url):
-    """Urlshortx Direct API Fetch"""
-    api_url = f"https://urlshortx.com/api?api={URLSHORTX_API_KEY}&url={urllib.parse.quote(target_url)}"
+    """Urlshortx API Fix"""
+    api_url = f"https://urlshortx.com/api?api={URLSHORTX_API_KEY}&url={urllib.parse.quote(target_url, safe='')}"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
     try:
-        res = requests.get(api_url, headers=headers, timeout=10)
+        res = requests.get(api_url, headers=headers, timeout=12)
         if res.status_code == 200:
             data = res.json()
-            if "shortenedUrl" in data and data["shortenedUrl"]:
+            if data.get("status") == "success" and "shortenedUrl" in data:
                 return data["shortenedUrl"]
-            elif data.get("status") == "success":
-                return data.get("url") or data.get("shortenedUrl")
+            elif "shortenedUrl" in data:
+                return data["shortenedUrl"]
+            elif "url" in data:
+                return data["url"]
     except Exception as e:
         logger.error(f"Urlshortx Error: {e}")
     
-    # Direct Backup Format
-    return f"https://urlshortx.com/st?api={URLSHORTX_API_KEY}&url={urllib.parse.quote(target_url)}"
+    return None
 
 def get_qr_url(amount):
     upi_string = f"upi://pay?pa={UPI_ID}&pn=Amlan%20malik&am={amount}&cu=INR"
@@ -214,6 +215,10 @@ def all_messages_handler(message):
         
         target_destination = f"https://t.me/{BOT_USERNAME}?start={token}"
         short_link = get_short_link(target_destination)
+
+        if not short_link:
+            bot.send_message(message.chat.id, "⚠️ Server busy! Press **⭐ FREE LIKES** again in 5 seconds.")
+            return
 
         text_msg = (
             "🔓 **FREE LIKES TASK**\n\n"
