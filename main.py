@@ -15,21 +15,23 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = "8868364202:AAHmY3fFncwmpDjDjbwCWzcg-cuq-xCNbAI"
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7125817223
-OWNER_USERNAME = "rohit2848"  # Aapka Telegram Username
+OWNER_USERNAME = "rohit2848"  # Telegram Username
 
-# AAPKA EXACT FAMAPP UPI ID
+# AAPKA EXACT FAMAPP UPI ID & DETAILS
 UPI_ID = "7605900368@fam"
+ACCOUNT_NAME = "Amlan malik"
 
 GPLINKS_API_KEY = "B127680908b90e463b9216880b34fb36e0a6a9c6"
-
-# BOT REDIRECT URL
 BOT_USERNAME = "FreeFireIzzapiFF_BOT"
 TARGET_URL = f"https://t.me/{BOT_USERNAME}?start=claim"
 
 bot = telebot.TeleBot(BOT_TOKEN)
-BOT_CONTROL_FILE = "bot_stopped.lock"
 
-# Link click tracking
+# Dynamic QR code generator for your exact FamApp UPI ID
+def get_qr_url(amount):
+    upi_string = f"upi://pay?pa={UPI_ID}&pn=Amlan%20malik&am={amount}&cu=INR"
+    return f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={urllib.parse.quote(upi_string)}"
+
 user_clicked_link = set()
 
 def init_db():
@@ -38,6 +40,7 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
+            referrals INTEGER DEFAULT 0,
             referred_by INTEGER
         )
     ''')
@@ -69,15 +72,11 @@ def get_short_link():
         logger.error(f"GPLinks Error: {e}")
     return fallback_link
 
-def generate_qr_code_url(upi_id, amount, note="VIP Likes"):
-    upi_uri = f"upi://pay?pa={upi_id}&pn=Amlan%20Malik&am={amount}&cu=INR&tn={urllib.parse.quote(note)}"
-    return f"https://chart.googleapis.com/chart?cht=qr&chs=350x350&chl={urllib.parse.quote(upi_uri)}"
-
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is Alive & Running 24/7!"
+    return "Bot Online!"
 
 def run_web():
     port = int(os.environ.get("PORT", 8080))
@@ -101,13 +100,13 @@ def region_inline_menu():
     )
     return markup
 
-@bot.callback_query_handler(func=lambda call: call.data in ['track_open', 'claim_verify'] or call.data.startswith(('region_', 'pkg_')))
+@bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     user_id = call.from_user.id
 
     if call.data == 'track_open':
         user_clicked_link.add(user_id)
-        bot.answer_callback_query(call.id, "🔗 Link Opened! Complete the task and click 'I Have Completed Task'.")
+        bot.answer_callback_query(call.id, "🔗 Link opened! Task poora karke 'I Have Completed Task' dabayein.")
 
     elif call.data == 'claim_verify':
         if user_id not in user_clicked_link:
@@ -117,45 +116,35 @@ def callback_handler(call):
         user_clicked_link.remove(user_id)
         bot.answer_callback_query(call.id, "✅ Verified Successfully!")
         
-        try:
-            bot.edit_message_text(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                text="🎯 **Task Verified Successfully!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
-                reply_markup=region_inline_menu(),
-                parse_mode="Markdown"
-            )
-        except Exception:
-            bot.send_message(
-                call.message.chat.id,
-                "🎯 **Task Verified Successfully!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
-                reply_markup=region_inline_menu(),
-                parse_mode="Markdown"
-            )
+        bot.send_message(
+            call.message.chat.id,
+            "🎯 **Task Verified Successfully!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
+            reply_markup=region_inline_menu(),
+            parse_mode="Markdown"
+        )
 
     elif call.data.startswith('pkg_'):
-        amount = call.data.split('_')[1]
-        plan_name = call.data.split('_')[2]
+        parts = call.data.split('_')
+        amount = parts[1]
+        plan_name = parts[2]
+        
         bot.answer_callback_query(call.id)
         
-        qr_url = generate_qr_code_url(UPI_ID, amount, f"{plan_name} VIP")
+        qr_image_url = get_qr_url(amount)
         
         caption = (
-            f"🟢 **UPI Selected.**\n\n"
-            f"👤 **Name:** `Amlan malik`\n"
+            f"🟢 **UPI Payment Details**\n\n"
+            f"👤 **Name:** `{ACCOUNT_NAME}`\n"
             f"📦 **Plan:** `{plan_name} VIP`\n"
             f"💰 **Amount:** `₹{amount}`\n"
-            f"💳 **Method:** `UPI / FamApp`\n"
-            f"💳 **UPI ID:** `{UPI_ID}` 📋\n\n"
-            f"🛡️ **100% Secure Payment**\n"
-            f"⌛ **Payment valid for 10 minutes**\n"
-            f"📤 **Send payment screenshot to owner**\n"
-            f"💬 **Need Help? Contact** @{OWNER_USERNAME}\n\n"
-            f"⚡ *VIP Membership activates instantly after verification!*"
+            f"💳 **UPI ID:** `{UPI_ID}`\n\n"
+            f"📥 **Scan QR Code or Pay directly on UPI ID.**\n"
+            f"📤 **Send payment screenshot to:** @{OWNER_USERNAME}\n\n"
+            f"⚡ *VIP activates instantly after verification!*"
         )
         
         try:
-            bot.send_photo(call.message.chat.id, photo=qr_url, caption=caption, parse_mode="Markdown")
+            bot.send_photo(call.message.chat.id, photo=qr_image_url, caption=caption, parse_mode="Markdown")
         except Exception as e:
             logger.error(f"Error sending photo: {e}")
             bot.send_message(call.message.chat.id, caption, parse_mode="Markdown")
@@ -180,12 +169,25 @@ def all_messages_handler(message):
             user_clicked_link.add(user_id)
 
         welcome_text = (
-            "✨ Welcome to VIP Like Services, Leader!\n\n"
-            "🎒 I'm Free Fire Instant Likes Bot!\n"
+            "✨ Welcome to Free Fire VIP Likes Bot!\n\n"
             "⚡ Fast, Safe & 24/7 Active Bot.\n\n"
             "👇 Tap an option below to get started!"
         )
         bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu())
+
+    elif text == "🎁 REFER & EARN":
+        if not is_subscribed(user_id):
+            bot.reply_to(message, "❌ Access Denied! Pehle @hacklinkpc channel join karein.")
+            return
+
+        referral_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
+        ref_text = (
+            "🎁 **REFER & EARN SYSTEM**\n\n"
+            "📢 Share your referral link with friends!\n"
+            "🚀 Earn Free VIP Likes for every referral.\n\n"
+            f"🔗 **Your Invite Link:**\n`{referral_link}`"
+        )
+        bot.send_message(message.chat.id, ref_text, parse_mode="Markdown")
 
     elif text == "💎 BUY VIP / PREMIUM":
         if not is_subscribed(user_id):
@@ -199,18 +201,18 @@ def all_messages_handler(message):
             "💵 7 Days VIP = ₹45\n"
             "💵 15 Days VIP = ₹90\n"
             "💵 30 Days VIP = ₹210\n\n"
-            "✨ *Select a Package Below to View Payment QR!*"
+            "✨ *Select a Package Below to Get QR Code!*"
         )
         markup = InlineKeyboardMarkup()
         markup.add(
-            InlineKeyboardButton("₹10 (1 Day VIP)", callback_data="pkg_10_1 Day"),
-            InlineKeyboardButton("₹25 (3 Days VIP)", callback_data="pkg_25_3 Days")
+            InlineKeyboardButton("₹10 (1 Day)", callback_data="pkg_10_1Day"),
+            InlineKeyboardButton("₹25 (3 Days)", callback_data="pkg_25_3Days")
         )
         markup.add(
-            InlineKeyboardButton("₹45 (7 Days VIP)", callback_data="pkg_45_7 Days"),
-            InlineKeyboardButton("₹90 (15 Days VIP)", callback_data="pkg_90_15 Days")
+            InlineKeyboardButton("₹45 (7 Days)", callback_data="pkg_45_7Days"),
+            InlineKeyboardButton("₹90 (15 Days)", callback_data="pkg_90_15Days")
         )
-        markup.add(InlineKeyboardButton("₹210 (30 Days VIP)", callback_data="pkg_210_30 Days"))
+        markup.add(InlineKeyboardButton("₹210 (30 Days)", callback_data="pkg_210_30Days"))
         
         bot.send_message(message.chat.id, text_msg, reply_markup=markup, parse_mode="Markdown")
 
@@ -223,7 +225,7 @@ def all_messages_handler(message):
         text_msg = (
             "🔓 **UNLOCK FREE LIKES**\n\n"
             "1️⃣ Pehle **`🔗 Open & Complete Link`** par click karke task poora karein.\n"
-            "2️⃣ Task complete hone par aap direct bot par aayenge, fir **`✅ I Have Completed Task`** dabayein!"
+            "2️⃣ Task complete karne ke baad **`✅ I Have Completed Task`** dabayein!"
         )
         
         inline_kb = InlineKeyboardMarkup()
@@ -242,4 +244,4 @@ def process_user_uid(message, region):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-                         
+        
