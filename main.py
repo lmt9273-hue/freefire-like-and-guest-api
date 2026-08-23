@@ -13,12 +13,13 @@ logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
 BOT_TOKEN = "8868364202:AAFhI1n-PJ-vS0x_OWZlpwN0k7m4GSSLRLI"
+REQUIRED_CHANNELS = ["@hacklinkpc"]
 
-# ADMIN DETAILS
+# ALLOWED OWNER USERNAMES & ID
 ALLOWED_USER_ID = 7125817223  
-ALLOWED_USERNAME = "rohitx_2848"
+ALLOWED_USERNAMES = ["rohit2848", "rohitx_2848"]
 
-# Global Variable to track Bot State
+# Bot ON/OFF Flag
 is_bot_stopped = False
 
 UPI_ID = "7605900368@fam"
@@ -31,10 +32,10 @@ TARGET_URL = f"https://t.me/{BOT_USERNAME}?start=claim"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 def is_owner(user):
-    """Check if the user is the owner using ID or Username"""
+    """Check if sender is owner via ID or either Username"""
     if user.id == ALLOWED_USER_ID:
         return True
-    if user.username and user.username.lower() == ALLOWED_USERNAME:
+    if user.username and user.username.lower() in ALLOWED_USERNAMES:
         return True
     return False
 
@@ -77,9 +78,8 @@ def region_inline_menu():
 def callback_handler(call):
     global is_bot_stopped
     
-    # Public Check: Stop hone par normal users block rahenge
     if is_bot_stopped and not is_owner(call.from_user):
-        bot.answer_callback_query(call.id, "🛠️ Bot is currently stopped by owner!", show_alert=True)
+        bot.answer_callback_query(call.id, "🛠️ Bot is currently under maintenance!", show_alert=True)
         return
 
     user_id = call.from_user.id
@@ -118,7 +118,7 @@ def callback_handler(call):
             f"💰 **Amount:** `₹{amount}`\n"
             f"💳 **UPI ID:** `{UPI_ID}`\n\n"
             f"📥 **Scan QR Code or Pay directly on UPI ID.**\n"
-            f"📤 **Send payment screenshot to:** @{ALLOWED_USERNAME}\n\n"
+            f"📤 **Send payment screenshot to:** @rohit2848\n\n"
             f"⚡ *VIP activates instantly after verification!*"
         )
         
@@ -141,20 +141,20 @@ def all_messages_handler(message):
     text = message.text
     user_id = message.from_user.id
 
-    # --- OWNER SPECIAL COMMANDS ---
+    # Owner Commands
     if is_owner(message.from_user):
         if text == "/stopbot":
             is_bot_stopped = True
-            bot.reply_to(message, "🛑 **Bot Stopped Successfully!**\nAb koi bhi user bot use nahi kar payega.")
+            bot.reply_to(message, "🛑 **Bot Stopped!** Normal users can no longer use it.")
             return
         elif text == "/startbot":
             is_bot_stopped = False
-            bot.reply_to(message, "🟢 **Bot Started Successfully!**\nAb sabhi users bot use kar sakte hain.")
+            bot.reply_to(message, "🟢 **Bot Started!** Everyone can use it now.")
             return
 
-    # Check if Bot is Stopped for Normal Users
+    # Check if Stopped
     if is_bot_stopped and not is_owner(message.from_user):
-        bot.reply_to(message, "🛠️ **Bot is under maintenance.**\nAccess restricted by owner.")
+        bot.reply_to(message, "🛠️ **Bot is under maintenance.**")
         return
 
     if text and text.startswith('/start'):
