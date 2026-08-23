@@ -11,7 +11,7 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- UPDATED CONFIGURATION ---
+# --- CONFIGURATION ---
 BOT_TOKEN = "8868364202:AAHmY3fFncwmpDjDjbwCWzcg-cuq-xCNbAI"
 BOT_USERNAME = "FreeFirebrazilFF_BOT"
 
@@ -25,7 +25,8 @@ is_bot_stopped = False
 UPI_ID = "7605900368@fam"
 ACCOUNT_NAME = "Amlan malik"
 
-GPLINKS_API_KEY = "B127680908b90e463b9216880b34fb36e0a6a9c6"
+# Updated API Key from your video
+GPLINKS_API_KEY = "b480bd48837b6b20f20db558add38fc763270af"
 TARGET_URL = f"https://t.me/{BOT_USERNAME}?start=claim"
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -56,6 +57,18 @@ def force_join_menu():
         markup.add(InlineKeyboardButton(f"📢 Join Channel ({ch})", url=f"https://t.me/{ch_clean}"))
     markup.add(InlineKeyboardButton("🔄 Verify Join Status", callback_data="check_join_again"))
     return markup
+
+def get_short_link(target_url):
+    """Fetches the actual shortened URL from GPLinks API"""
+    try:
+        api_url = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(target_url)}"
+        response = requests.get(api_url, timeout=10)
+        data = response.json()
+        if data.get("status") == "success" and "shortenedUrl" in data:
+            return data["shortenedUrl"]
+    except Exception as e:
+        logger.error(f"GPLinks API Error: {e}")
+    return target_url
 
 def get_qr_url(amount):
     upi_string = f"upi://pay?pa={UPI_ID}&pn=Amlan%20malik&am={amount}&cu=INR"
@@ -224,7 +237,7 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, text_msg, reply_markup=markup, parse_mode="Markdown")
 
     elif text == "⭐ FREE LIKES":
-        short_link = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(TARGET_URL)}"
+        short_link = get_short_link(TARGET_URL)
         text_msg = "🔓 Complete task to get Free Likes:"
         
         inline_kb = InlineKeyboardMarkup()
@@ -247,4 +260,4 @@ def process_user_uid(message, region):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-    
+        
