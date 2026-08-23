@@ -11,7 +11,7 @@ from flask import Flask
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = "8868364202:AAF1FWkefAs1pBBuPj5ZCh7HqVbyN6sN6_U"
+BOT_TOKEN = "8868364202:AAHiKROeUBbo2uaRfrcGQhKvS2l-NUOLJUM"
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7125817223
 OWNER_USERNAME = "rohit2848"
@@ -19,7 +19,7 @@ UPI_ID = "7605900368@fam"
 
 GPLINKS_API_KEY = "B127680908b90e463b9216880b34fb36e0a6a9c6"
 TARGET_URL = "https://t.me/hacklinkpc"
-QR_CODE_URL = "https://i.ibb.co/6Js976z/qr-sample.jpg" 
+QR_CODE_URL = "https://i.ibb.co/6Js976z/qr-sample.jpg"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 BOT_CONTROL_FILE = "bot_stopped.lock"
@@ -79,17 +79,6 @@ def get_short_link():
         logger.error(f"GPLinks Error: {e}")
     return fallback_link
 
-def notify_all_users(text_message):
-    users = db_query("SELECT user_id FROM users", fetchall=True)
-    if not users:
-        return
-    for u in users:
-        try:
-            bot.send_message(u[0], text_message)
-            time.sleep(0.05)
-        except Exception:
-            pass
-
 app = Flask('')
 
 @app.route('/')
@@ -136,7 +125,7 @@ def callback_handler(call):
         return
 
     if call.data == 'claim_verify':
-        bot.answer_callback_query(call.id, "✅ Verified!")
+        bot.answer_callback_query(call.id, "✅ Verified Successfully!")
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
@@ -197,20 +186,21 @@ def all_messages_handler(message):
             "• 1 Day VIP: ₹20\n"
             "• 7 Days VIP: ₹100\n"
             "• Monthly VIP: ₹300\n\n"
-            f"📱 UPI ID: {UPI_ID}\n\n"
+            f"📱 UPI ID: `{UPI_ID}`\n\n"
             "💳 How to Pay:\n"
-            "1. Scan the QR code above or copy the UPI ID.\n"
+            "1. Scan the QR code or click Pay via UPI.\n"
             "2. Make payment and take a screenshot.\n"
             "3. Click below to send proof along with your User ID."
         )
         markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("⚡ Pay via UPI (GPay/PhonePe)", url=f"upi://pay?pa={UPI_ID}&pn=VIP%20Likes&cu=INR"))
         markup.add(InlineKeyboardButton("📩 Send Proof to Owner", url=f"https://t.me/{OWNER_USERNAME}"))
         
         try:
-            bot.send_photo(message.chat.id, photo=QR_CODE_URL, caption=text_msg, reply_markup=markup)
+            bot.send_photo(message.chat.id, photo=QR_CODE_URL, caption=text_msg, reply_markup=markup, parse_mode="Markdown")
         except Exception as e:
             logger.error(f"Photo send error: {e}")
-            bot.send_message(message.chat.id, text_msg, reply_markup=markup)
+            bot.send_message(message.chat.id, text_msg, reply_markup=markup, parse_mode="Markdown")
 
     elif text == "⭐ FREE LIKES":
         if not is_subscribed(user_id):
@@ -220,8 +210,8 @@ def all_messages_handler(message):
         short_link = get_short_link()
         text_msg = (
             "🔓 **UNLOCK FREE LIKES**\n\n"
-            "Free Likes paane ke liye niche diye gaye **Link** ko open karke task complete karein.\n\n"
-            "Task complete karne ke baad **`✅ Complete & Claim Likes`** button par click karein!"
+            "1. Niche **`🔗 Open & Complete Link`** par click karke task complete karein.\n"
+            "2. Task complete karke wapas yahan aayein aur **`✅ Complete & Claim Likes`** par click karein!"
         )
         
         inline_kb = InlineKeyboardMarkup()
@@ -250,4 +240,3 @@ def process_like(message, region, uid):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-    
