@@ -11,7 +11,7 @@ from flask import Flask
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = "8868364202:AAHT-nhI3bYNv9gHXADiMPBj5V8AgdjnX8U"
+BOT_TOKEN = "8868364202:AAHhX3CqwSvUBRUlcGTLlLyJGVOXY7DLdRo"
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7125817223
 OWNER_USERNAME = "rohit2848"
@@ -19,6 +19,7 @@ UPI_ID = "7605900368@fam"
 
 GPLINKS_API_KEY = "B127680908b90e463b9216880b34fb36e0a6a9c6"
 TARGET_URL = "https://t.me/hacklinkpc"
+# Backup working QR image
 QR_CODE_URL = "https://i.ibb.co/6Js976z/qr-sample.jpg"
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -117,27 +118,28 @@ def region_inline_menu():
     )
     return markup
 
-@bot.callback_query_handler(func=lambda call: call.data == 'claim_verify' or call.data.startswith('region_'))
+@bot.callback_query_handler(func=lambda call: call.data in ['link_clicked', 'claim_verify'] or call.data.startswith('region_'))
 def callback_handler(call):
     user_id = call.from_user.id
     if os.path.exists(BOT_CONTROL_FILE):
         bot.answer_callback_query(call.id, "⚠️ Bot is currently OFF by Owner @rohit2848.", show_alert=True)
         return
 
-    if call.data == 'claim_verify':
-        bot.answer_callback_query(call.id, "✅ Verified Successfully!")
+    if call.data == 'link_clicked':
+        # User ne link open karne ke baad isko dabaya hoga, ab hum state true kar denge
+        bot.answer_callback_query(call.id, "✅ Task Verified! Ab Region select karein.")
         try:
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                text="🎯 **Verification Done!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
+                text="🎯 **Task Verified Successfully!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
                 reply_markup=region_inline_menu(),
                 parse_mode="Markdown"
             )
         except Exception:
             bot.send_message(
                 call.message.chat.id,
-                "🎯 **Verification Done!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
+                "🎯 **Task Verified Successfully!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
                 reply_markup=region_inline_menu(),
                 parse_mode="Markdown"
             )
@@ -191,20 +193,24 @@ def all_messages_handler(message):
             "• Unlimited Daily Likes\n"
             "• Instant API Processing\n"
             "• Priority Support\n\n"
-            "💸 Pricing:\n"
+            "💸 Pricing & Direct Payment Links:\n"
             "• 1 Day VIP: ₹20\n"
             "• 7 Days VIP: ₹100\n"
             "• Monthly VIP: ₹300\n\n"
             f"📱 UPI ID: `{UPI_ID}`\n\n"
             "💳 How to Pay:\n"
-            "1. Scan the QR code or click Pay via UPI.\n"
-            "2. Make payment and take a screenshot.\n"
-            "3. Send proof to owner along with your User ID."
+            "1. Niche diye gaye buttons se direct payment karein.\n"
+            "2. Payment ka screenshot lo aur owner ko bhejo."
         )
         markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("⚡ Pay via UPI (GPay/PhonePe)", url=f"upi://pay?pa={UPI_ID}&pn=VIP%20Likes&cu=INR"))
+        markup.add(
+            InlineKeyboardButton("⚡ Pay ₹20 (1 Day)", url=f"upi://pay?pa={UPI_ID}&pn=VIP%20Likes&am=20&cu=INR"),
+            InlineKeyboardButton("⚡ Pay ₹100 (7 Days)", url=f"upi://pay?pa={UPI_ID}&pn=VIP%20Likes&am=100&cu=INR")
+        )
+        markup.add(InlineKeyboardButton("⚡ Pay ₹300 (Monthly)", url=f"upi://pay?pa={UPI_ID}&pn=VIP%20Likes&am=300&cu=INR"))
         markup.add(InlineKeyboardButton("📩 Send Proof to Owner", url=f"https://t.me/{OWNER_USERNAME}"))
         
+        # Fallback mechanism for photo
         try:
             bot.send_photo(message.chat.id, photo=QR_CODE_URL, caption=text_msg, reply_markup=markup, parse_mode="Markdown")
         except Exception as e:
@@ -219,13 +225,14 @@ def all_messages_handler(message):
         short_link = get_short_link()
         text_msg = (
             "🔓 **UNLOCK FREE LIKES**\n\n"
-            "1. Niche **`🔗 Open & Complete Link`** par click karke task complete karein.\n"
-            "2. Task complete karke wapas yahan aayein aur **`✅ Complete & Claim Likes`** par click karein!"
+            "1️⃣ Sabse pehle **`🔗 Open & Complete Link`** par click karke task poora karein.\n"
+            "2️⃣ Task poora karne ke baad hi **`✅ I Have Completed Task`** par click karein!"
         )
         
         inline_kb = InlineKeyboardMarkup()
         inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=short_link))
-        inline_kb.add(InlineKeyboardButton("✅ Complete & Claim Likes", callback_data="claim_verify"))
+        # Yahan callback data change kar diya hai taaki user ko seedha pata chale
+        inline_kb.add(InlineKeyboardButton("✅ I Have Completed Task", callback_data="link_clicked"))
 
         bot.send_message(message.chat.id, text_msg, reply_markup=inline_kb, parse_mode="Markdown")
 
@@ -249,4 +256,4 @@ def process_like(message, region, uid):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-               
+        
