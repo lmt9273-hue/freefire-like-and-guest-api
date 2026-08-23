@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8868364202:AAHmY3fFncwmpDjDjbwCWz") # Apna Token Yahan Check Kar Lein
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8868364202:AAHmY3fFncwmpDjDjbwCWz").strip()
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -23,7 +23,6 @@ except Exception as e:
     logger.error(f"Failed to load accounts.json: {e}")
 
 def send_like_account(account, target_uid, region):
-    """Garena Server Authentication and Like Trigger"""
     try:
         login_res = requests.post(
             "https://clientbp.ggservices.com/guest_login", 
