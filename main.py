@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
-BOT_TOKEN = "8868364202:AAFhI1n-PJ-vS0x_OWZlpwN0k7m4GSSLRLI"
+BOT_TOKEN = "8868364202:AAHmY3fFncwmpDjDjbwCWzcg-cuq-xCNbAI"
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 
 # ALLOWED OWNER USERNAMES & ID
