@@ -61,7 +61,7 @@ def force_join_menu():
     return markup
 
 def get_short_link(target_url):
-    """Fetches shortened URL from GPLinks API"""
+    """Strict GPLinks API fetcher (Returns None if API fails)"""
     try:
         api_url = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(target_url)}"
         response = requests.get(api_url, timeout=10)
@@ -70,7 +70,7 @@ def get_short_link(target_url):
             return data["shortenedUrl"]
     except Exception as e:
         logger.error(f"GPLinks API Error: {e}")
-    return target_url
+    return None
 
 def get_qr_url(amount):
     upi_string = f"upi://pay?pa={UPI_ID}&pn=Amlan%20malik&am={amount}&cu=INR"
@@ -201,7 +201,7 @@ def all_messages_handler(message):
         if len(args) > 1 and args[1].startswith('claim_'):
             token = args[1]
             if token in valid_tokens and valid_tokens[token] == user_id:
-                del valid_tokens[token] # Single-use token logic
+                del valid_tokens[token]  # Single-use token logic
                 bot.send_message(
                     message.chat.id,
                     "🎉 **GPLinks Task Verified Successfully!**\n\nAb apna **Free Fire Region** choose karein:",
@@ -242,11 +242,15 @@ def all_messages_handler(message):
         target_destination = f"https://t.me/{BOT_USERNAME}?start={token}"
         short_link = get_short_link(target_destination)
         
+        if not short_link:
+            bot.send_message(message.chat.id, "⚠️ **Server Error!** GPLinks API is temporarily unreachable. Please try again in 1 minute.")
+            return
+
         text_msg = (
             "🔓 **FREE LIKES TASK**\n\n"
-            "1️⃣ Neeche diye gaye **`🔗 Open & Complete Link`** par click karein.\n"
-            "2️⃣ GPLinks par saare Steps & Ads bypass karke **Get Link** par click karein.\n"
-            "3️⃣ Automatic Verification ke baad aap wapas yahan redirect ho jaoge!"
+            "1️⃣ Neeche diye gaye **`🔗 Open & Complete Link`** par click karke browser mein link kholein.\n"
+            "2️⃣ GPLinks ke saare Ads & Steps Bypass karke **Get Link** dabayein.\n"
+            "3️⃣ Direct bypass hone par aap auto-verify ho jaoge!"
         )
         
         inline_kb = InlineKeyboardMarkup()
