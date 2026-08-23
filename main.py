@@ -11,9 +11,11 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- CONFIGURATION (UPDATED FROM BOTFATHER SCREENSHOT) ---
+# --- UPDATED CONFIGURATION ---
 BOT_TOKEN = "8868364202:AAHmY3fFncwmpDjDjbwCWzcg-cuq-xCNbAI"
-BOT_USERNAME = "FreeFirebrazilFF_BOT"  # Corrected Username
+BOT_USERNAME = "FreeFirebrazilFF_BOT"
+
+REQUIRED_CHANNELS = ["@hacklinkpc"]
 
 ALLOWED_USER_ID = 7125817223  
 ALLOWED_USERNAMES = ["rohit2848", "rohitx_2848"]
@@ -34,6 +36,26 @@ def is_owner(user):
     if user.username and user.username.lower() in ALLOWED_USERNAMES:
         return True
     return False
+
+def check_force_join(user_id):
+    """Real-time check: verifies if user is STILL in the channel"""
+    for ch in REQUIRED_CHANNELS:
+        try:
+            member = bot.get_chat_member(ch, user_id)
+            if member.status in ['left', 'kicked']:
+                return False
+        except Exception as e:
+            logger.error(f"Error checking channel join: {e}")
+            return False
+    return True
+
+def force_join_menu():
+    markup = InlineKeyboardMarkup()
+    for ch in REQUIRED_CHANNELS:
+        ch_clean = ch.replace("@", "")
+        markup.add(InlineKeyboardButton(f"📢 Join Channel ({ch})", url=f"https://t.me/{ch_clean}"))
+    markup.add(InlineKeyboardButton("🔄 Verify Join Status", callback_data="check_join_again"))
+    return markup
 
 def get_qr_url(amount):
     upi_string = f"upi://pay?pa={UPI_ID}&pn=Amlan%20malik&am={amount}&cu=INR"
@@ -73,12 +95,31 @@ def region_inline_menu():
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     global is_bot_stopped
+    user_id = call.from_user.id
     
     if is_bot_stopped and not is_owner(call.from_user):
         bot.answer_callback_query(call.id, "🛠️ Bot is under maintenance!", show_alert=True)
         return
 
-    user_id = call.from_user.id
+    # Verify Button Action
+    if call.data == 'check_join_again':
+        if check_force_join(user_id):
+            bot.answer_callback_query(call.id, "✅ Verified! Welcome back.")
+            bot.send_message(call.message.chat.id, "🎉 Access Granted! Options select karein:", reply_markup=main_menu())
+        else:
+            bot.answer_callback_query(call.id, "❌ Channel join nahi hai! Pehle join karein.", show_alert=True)
+        return
+
+    # Real-time Channel Leave Check
+    if not is_owner(call.from_user) and not check_force_join(user_id):
+        bot.answer_callback_query(call.id, "❌ Access Denied! Aapne channel leave kar diya hai.", show_alert=True)
+        bot.send_message(
+            call.message.chat.id,
+            "⚠️ **Access Revoked!**\n\nAapne humara official channel leave kar diya hai. Bot use karne ke liye dubara join karein:",
+            reply_markup=force_join_menu(),
+            parse_mode="Markdown"
+        )
+        return
 
     if call.data == 'track_open':
         user_clicked_link.add(user_id)
@@ -86,15 +127,15 @@ def callback_handler(call):
 
     elif call.data == 'claim_verify':
         if user_id not in user_clicked_link:
-            bot.answer_callback_query(call.id, "❌ Task Incomplete! Pehle 'Open & Complete Link' par click karein!", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ Task Incomplete! Pehle link open karein!", show_alert=True)
             return
 
         user_clicked_link.remove(user_id)
-        bot.answer_callback_query(call.id, "✅ Verified Successfully!")
+        bot.answer_callback_query(call.id, "✅ Task Verified!")
         
         bot.send_message(
             call.message.chat.id,
-            "🎯 **Task Verified Successfully!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
+            "🎯 **Task Verified!**\n\nAb apna **Free Fire Region** choose karein:",
             reply_markup=region_inline_menu(),
             parse_mode="Markdown"
         )
@@ -113,9 +154,7 @@ def callback_handler(call):
             f"📦 **Plan:** `{plan_name} VIP`\n"
             f"💰 **Amount:** `₹{amount}`\n"
             f"💳 **UPI ID:** `{UPI_ID}`\n\n"
-            f"📥 **Scan QR Code or Pay directly on UPI ID.**\n"
-            f"📤 **Send payment screenshot to:** @rohit2848\n\n"
-            f"⚡ *VIP activates instantly after verification!*"
+            f"📤 Screenshot bhejein: @rohit2848"
         )
         
         try:
@@ -127,7 +166,7 @@ def callback_handler(call):
     elif call.data.startswith('region_'):
         region = call.data.split('_')[1]
         bot.answer_callback_query(call.id)
-        msg = bot.send_message(call.message.chat.id, f"🎯 Selected Region: **{region}**\n\n📝 Enter your Free Fire UID:", parse_mode="Markdown")
+        msg = bot.send_message(call.message.chat.id, f"🎯 Selected Region: **{region}**\n\n📝 Enter Free Fire UID:", parse_mode="Markdown")
         bot.register_next_step_handler(msg, process_user_uid, region)
 
 # --- MESSAGE HANDLER ---
@@ -148,37 +187,30 @@ def all_messages_handler(message):
             return
 
     if is_bot_stopped and not is_owner(message.from_user):
-        bot.reply_to(message, "🛠️ **Bot is under maintenance.** Access restricted by owner.")
+        bot.reply_to(message, "🛠️ **Bot is under maintenance.**")
+        return
+
+    # Real-time Check for commands / buttons
+    if not is_owner(message.from_user) and not check_force_join(user_id):
+        bot.send_message(
+            message.chat.id,
+            "⚠️ **Access Denied!**\n\nAapne channel leave kar diya hai. Access paane ke liye dubara join karein:",
+            reply_markup=force_join_menu(),
+            parse_mode="Markdown"
+        )
         return
 
     if text and text.startswith('/start'):
-        welcome_text = (
-            "✨ Welcome to Free Fire VIP Likes Bot!\n\n"
-            "⚡ Fast, Safe & 24/7 Active Bot.\n\n"
-            "👇 Tap an option below to get started!"
-        )
+        welcome_text = "✨ Welcome to Free Fire VIP Likes Bot!\n\n👇 Tap an option below:"
         bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu())
 
     elif text == "🎁 REFER & EARN":
         unique_referral_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
-        ref_text = (
-            "🎁 **REFER & EARN SYSTEM**\n\n"
-            "📢 Share your unique referral link with friends!\n"
-            "🚀 Earn Free VIP Likes for every referral.\n\n"
-            f"🔗 **Your Personal Invite Link:**\n`{unique_referral_link}`"
-        )
+        ref_text = f"🎁 **REFER & EARN**\n\n🔗 Your Invite Link:\n`{unique_referral_link}`"
         bot.send_message(message.chat.id, ref_text, parse_mode="Markdown")
 
     elif text == "💎 BUY VIP / PREMIUM":
-        text_msg = (
-            "💎 **BUY VIP / PREMIUM PACKAGES**\n\n"
-            "💵 1 Day VIP = ₹10\n"
-            "💵 3 Days VIP = ₹25\n"
-            "💵 7 Days VIP = ₹45\n"
-            "💵 15 Days VIP = ₹90\n"
-            "💵 30 Days VIP = ₹210\n\n"
-            "✨ *Select a Package Below to Get QR Code!*"
-        )
+        text_msg = "💎 **BUY VIP PACKAGES**\n\nSelect a package below:"
         markup = InlineKeyboardMarkup()
         markup.add(
             InlineKeyboardButton("₹10 (1 Day)", callback_data="pkg_10_1Day"),
@@ -189,16 +221,11 @@ def all_messages_handler(message):
             InlineKeyboardButton("₹90 (15 Days)", callback_data="pkg_90_15Days")
         )
         markup.add(InlineKeyboardButton("₹210 (30 Days)", callback_data="pkg_210_30Days"))
-        
         bot.send_message(message.chat.id, text_msg, reply_markup=markup, parse_mode="Markdown")
 
     elif text == "⭐ FREE LIKES":
         short_link = f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={urllib.parse.quote(TARGET_URL)}"
-        text_msg = (
-            "🔓 **UNLOCK FREE LIKES**\n\n"
-            "1️⃣ Pehle **`🔗 Open & Complete Link`** par click karke task poora karein.\n"
-            "2️⃣ Task complete karne ke baad **`✅ I Have Completed Task`** dabayein!"
-        )
+        text_msg = "🔓 Complete task to get Free Likes:"
         
         inline_kb = InlineKeyboardMarkup()
         inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=short_link, callback_data="track_open"))
@@ -207,11 +234,15 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, text_msg, reply_markup=inline_kb, parse_mode="Markdown")
 
 def process_user_uid(message, region):
+    if not is_owner(message.from_user) and not check_force_join(message.from_user.id):
+        bot.send_message(message.chat.id, "⚠️ Access Denied! Please rejoin the channel first.", reply_markup=force_join_menu())
+        return
+
     uid = message.text.strip()
     if not uid.isdigit():
-        bot.send_message(message.chat.id, "❌ Invalid UID! Please enter a numerical UID.")
+        bot.send_message(message.chat.id, "❌ Invalid UID! Please enter numbers only.")
         return
-    bot.send_message(message.chat.id, f"🎉 Likes Request Queued for UID: {uid} ({region})!")
+    bot.send_message(message.chat.id, f"🎉 Request Queued for UID: {uid} ({region})!")
 
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
