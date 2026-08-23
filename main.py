@@ -25,7 +25,16 @@ QR_CODE_URL = "https://raw.githubusercontent.com/lmt9273-hue/freefire-like-and-g
 bot = telebot.TeleBot(BOT_TOKEN)
 like_tracker = {}   
 user_database = set()  
-
+def is_subscribed(user_id):
+    for ch in REQUIRED_CHANNELS:
+        try:
+            member = bot.get_chat_member(ch, user_id)
+            if member.status not in ['creator', 'administrator', 'member']:
+                return False
+        except Exception:
+            return False
+    return True
+    
 # Flask Server for Render
 app = Flask('')
 
@@ -75,6 +84,10 @@ def region_menu():
 
 @bot.message_handler(commands=['start'])
 def start_command(message):
+        if not is_subscribed(message.from_user.id):
+        bot.reply_to(message, "❌ Pehle humara channel @hacklinkpc join karein!")
+        return
+    
     user_database.add(message.from_user.id)
     welcome_text = (
         "✨ **Welcome to VIP Like Services, Leader!**\n\n"
@@ -86,6 +99,10 @@ def start_command(message):
 
 @bot.message_handler(func=lambda message: message.text == "💎 BUY VIP / PREMIUM")
 def buy_vip_click(message):
+        if not is_subscribed(message.from_user.id):
+        bot.reply_to(message, "❌ Access Denied! Pehle @hacklinkpc channel join karein.")
+        return
+    
     text = (
         "💎 **VIP & PREMIUM PLANS**\n\n"
         "🚀 **Benefits:**\n"
@@ -112,6 +129,10 @@ def buy_vip_click(message):
 
 @bot.message_handler(func=lambda message: message.text == "⭐ FREE LIKES")
 def free_likes_click(message):
+        if not is_subscribed(message.from_user.id):
+        bot.reply_to(message, "❌ Access Denied! Pehle @hacklinkpc channel join karein.")
+        return
+    
     bot.send_message(message.chat.id, "💖 **FREE LIKES SECTION**\n\n🚀 Select your region:", reply_markup=region_menu(), parse_mode="Markdown")
 
 @bot.message_handler(func=lambda message: message.text in ["IND 🇮🇳", "BR 🇧🇷", "US 🇺🇸", "SG 🇸🇬", "RU 🇷🇺", "ID 🇮🇩"])
