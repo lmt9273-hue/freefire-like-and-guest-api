@@ -11,7 +11,7 @@ from flask import Flask
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = "8868364202:AAGzmyWHwUL1EtTYzOJxP10jxiGMFoO4EOI"
+BOT_TOKEN = "8868364202:AAFhI1n-PJ-vS0x_OWZlpwN0k7m4GSSLRLI"
 REQUIRED_CHANNELS = ["@hacklinkpc"]
 OWNER_ID = 7125817223
 OWNER_USERNAME = "rohit2848"
@@ -126,18 +126,27 @@ def callback_handler(call):
 
     if call.data == 'claim_verify':
         bot.answer_callback_query(call.id, "✅ Verified Successfully!")
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="🎯 **Verification Done!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
-            reply_markup=region_inline_menu(),
-            parse_mode="Markdown"
-        )
+        try:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text="🎯 **Verification Done!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
+                reply_markup=region_inline_menu(),
+                parse_mode="Markdown"
+            )
+        except Exception:
+            bot.send_message(
+                call.message.chat.id,
+                "🎯 **Verification Done!**\n\nAb neeche se apna **Free Fire Region** choose karein:",
+                reply_markup=region_inline_menu(),
+                parse_mode="Markdown"
+            )
+
     elif call.data.startswith('region_'):
         region = call.data.split('_')[1]
+        bot.answer_callback_query(call.id)
         msg = bot.send_message(call.message.chat.id, f"🎯 Selected Region: **{region}**\n\n📝 Enter your Free Fire UID:", parse_mode="Markdown")
         bot.register_next_step_handler(msg, process_user_uid, region)
-        bot.answer_callback_query(call.id)
 
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'video', 'document', 'audio', 'sticker'])
 def all_messages_handler(message):
@@ -190,7 +199,7 @@ def all_messages_handler(message):
             "💳 How to Pay:\n"
             "1. Scan the QR code or click Pay via UPI.\n"
             "2. Make payment and take a screenshot.\n"
-            "3. Click below to send proof along with your User ID."
+            "3. Send proof to owner along with your User ID."
         )
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("⚡ Pay via UPI (GPay/PhonePe)", url=f"upi://pay?pa={UPI_ID}&pn=VIP%20Likes&cu=INR"))
@@ -240,3 +249,4 @@ def process_like(message, region, uid):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
+               
