@@ -6,7 +6,7 @@ import secrets
 import requests
 from flask import Flask
 import telebot
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -25,8 +25,8 @@ is_bot_stopped = False
 UPI_ID = "7605900368@fam"
 ACCOUNT_NAME = "Amlan malik"
 
-# Updated with your active Shrinkme API Key
-SHRINKME_API_KEY = "79bb11f8fbdbfc1371908a293b010548208e1f24"
+# Updated with Urlshortx API Key (Clean & Safe Ads)
+URLSHORTX_API_KEY = "73da8be2b31a94196410af3417fa8976c98a61f9"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -60,8 +60,8 @@ def force_join_menu():
     return markup
 
 def get_short_link(target_url):
-    """Shrinkme.io API Link Generator"""
-    api_url = f"https://shrinkme.io/api?api={SHRINKME_API_KEY}&url={urllib.parse.quote(target_url)}"
+    """Urlshortx API Generator"""
+    api_url = f"https://urlshortx.com/api?api={URLSHORTX_API_KEY}&url={urllib.parse.quote(target_url)}"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     try:
         response = requests.get(api_url, headers=headers, timeout=12)
@@ -72,7 +72,7 @@ def get_short_link(target_url):
             elif "shortenedUrl" in data:
                 return data["shortenedUrl"]
     except Exception as e:
-        logger.error(f"Shrinkme Fetch Failure: {e}")
+        logger.error(f"Urlshortx Fetch Failure: {e}")
     return None
 
 def get_qr_url(amount):
@@ -260,4 +260,4 @@ def process_user_uid(message, region):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-            
+        
