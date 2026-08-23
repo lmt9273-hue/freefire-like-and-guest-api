@@ -4,6 +4,22 @@ import logging
 import requests
 import concurrent.futures
 import telebot
+from flask import Flask
+from threading import Thread
+
+# Flask Web Server (Render Port Fix ke liye)
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running live!"
+
+def run():
+    app.run(host='0.0.0.0', port=10000)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -87,5 +103,6 @@ def handle_like(message):
         bot.reply_to(message, f"❌ Error: {e}")
 
 if __name__ == "__main__":
+    keep_alive() # Port error fix karega
     bot.infinity_polling()
-        
+    
