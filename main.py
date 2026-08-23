@@ -9,7 +9,6 @@ import logging
 import requests
 from flask import Flask
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,6 @@ OWNER_ID = 7125817223
 OWNER_USERNAME = "rohit2848"
 UPI_ID = "7605900368@fam"
 
-# GPLinks Shortener Config
 GPLINKS_API_KEY = "B127680908b90e463b9216880b34fb36e0a6a9c6"
 TARGET_URL = "https://t.me/hacklinkpc"
 
@@ -27,7 +25,6 @@ QR_CODE_URL = "https://raw.githubusercontent.com/lmt9273-hue/freefire-like-and-g
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Database Setup
 def init_db():
     conn = sqlite3.connect('bot_data.db', check_same_thread=False)
     cursor = conn.cursor()
@@ -73,11 +70,12 @@ def get_short_link():
         res = requests.get(url, timeout=10).json()
         if res.get("status") == "success":
             return res.get("shortlink")
+        elif "shortenedUrl" in res:
+            return res.get("shortenedUrl")
     except Exception as e:
         logger.error(f"GPLinks Error: {e}")
-    return TARGET_URL
+    return f"https://gplinks.in/api?api={GPLINKS_API_KEY}&url={TARGET_URL}"
 
-# Flask Server for Render
 app = Flask('')
 
 @app.route('/')
@@ -115,7 +113,6 @@ def start_command(message):
     user_id = message.from_user.id
     args = message.text.split()
 
-    # Create user if not exists
     user_data = db_query("SELECT user_id FROM users WHERE user_id = ?", (user_id,), fetchone=True)
     if not user_data:
         referrer_id = None
@@ -190,7 +187,7 @@ def refer_earn_click(message):
     text = (
         "🎁 REFERRAL SYSTEM\n\n"
         f"⭐ Aapke Paas Extra Bonus Likes Hain: {bonus_likes}\n\n"
-        "Apne doston ko bot share karein! Jab bhi koi dost aapke link se join karega, aapko 1 Extra Like Chane Ka Chance milega!\n\n"
+        "Apne doston ko bot share karein! Jab bhi koi dost aapke link se join karega, aapko 1 Extra Like pane ka chance milega!\n\n"
         f"🔗 Aapka Referral Link:\n{referral_link}"
     )
     bot.send_message(message.chat.id, text)
@@ -243,3 +240,4 @@ def back_menu(message):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True)
+    
