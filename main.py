@@ -25,9 +25,9 @@ is_bot_stopped = False
 UPI_ID = "7605900368@fam"
 ACCOUNT_NAME = "Amlan malik"
 
-# Updated API Key from your video
 GPLINKS_API_KEY = "b480bd48837b6b20f20db558add38fc763270af"
-TARGET_URL = f"https://t.me/{BOT_USERNAME}?start=claim"
+# Target destination link for GPLinks
+TARGET_URL = "https://google.com"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -73,8 +73,6 @@ def get_short_link(target_url):
 def get_qr_url(amount):
     upi_string = f"upi://pay?pa={UPI_ID}&pn=Amlan%20malik&am={amount}&cu=INR"
     return f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={urllib.parse.quote(upi_string)}"
-
-user_clicked_link = set()
 
 app = Flask('')
 
@@ -134,18 +132,8 @@ def callback_handler(call):
         )
         return
 
-    if call.data == 'track_open':
-        user_clicked_link.add(user_id)
-        bot.answer_callback_query(call.id, "🔗 Link opened! Task poora karke 'I Have Completed Task' dabayein.")
-
-    elif call.data == 'claim_verify':
-        if user_id not in user_clicked_link:
-            bot.answer_callback_query(call.id, "❌ Task Incomplete! Pehle link open karein!", show_alert=True)
-            return
-
-        user_clicked_link.remove(user_id)
+    if call.data == 'claim_verify':
         bot.answer_callback_query(call.id, "✅ Task Verified!")
-        
         bot.send_message(
             call.message.chat.id,
             "🎯 **Task Verified!**\n\nAb apna **Free Fire Region** choose karein:",
@@ -241,7 +229,8 @@ def all_messages_handler(message):
         text_msg = "🔓 Complete task to get Free Likes:"
         
         inline_kb = InlineKeyboardMarkup()
-        inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=short_link, callback_data="track_open"))
+        # Fixed URL Button (Opens external browser correctly)
+        inline_kb.add(InlineKeyboardButton("🔗 Open & Complete Link", url=short_link))
         inline_kb.add(InlineKeyboardButton("✅ I Have Completed Task", callback_data="claim_verify"))
 
         bot.send_message(message.chat.id, text_msg, reply_markup=inline_kb, parse_mode="Markdown")
@@ -260,4 +249,4 @@ def process_user_uid(message, region):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-        
+    
