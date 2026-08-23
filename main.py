@@ -11,8 +11,9 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- CONFIGURATION ---
+# --- CONFIGURATION (UPDATED FROM BOTFATHER SCREENSHOT) ---
 BOT_TOKEN = "8868364202:AAHmY3fFncwmpDjDjbwCWzcg-cuq-xCNbAI"
+BOT_USERNAME = "FreeFirebrazilFF_BOT"  # Corrected Username
 
 ALLOWED_USER_ID = 7125817223  
 ALLOWED_USERNAMES = ["rohit2848", "rohitx_2848"]
@@ -23,9 +24,6 @@ UPI_ID = "7605900368@fam"
 ACCOUNT_NAME = "Amlan malik"
 
 GPLINKS_API_KEY = "B127680908b90e463b9216880b34fb36e0a6a9c6"
-
-# ⚠️ EXACT BOT USERNAME FOR WORKING REFERRAL LINKS
-BOT_USERNAME = "FreeFireIzzapiFF_BOT"  
 TARGET_URL = f"https://t.me/{BOT_USERNAME}?start=claim"
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -76,7 +74,6 @@ def region_inline_menu():
 def callback_handler(call):
     global is_bot_stopped
     
-    # Silent Check
     if is_bot_stopped and not is_owner(call.from_user):
         bot.answer_callback_query(call.id, "🛠️ Bot is under maintenance!", show_alert=True)
         return
@@ -140,18 +137,16 @@ def all_messages_handler(message):
     text = message.text
     user_id = message.from_user.id
 
-    # Silent Stop/Start Commands
     if is_owner(message.from_user):
         if text == "/stopbot":
             is_bot_stopped = True
-            bot.reply_to(message, "🛑 **Bot Stopped Silently!** (No message sent to users)")
+            bot.reply_to(message, "🛑 **Bot Stopped Silently!**")
             return
         elif text == "/startbot":
             is_bot_stopped = False
-            bot.reply_to(message, "🟢 **Bot Started Silently!** (No message sent to users)")
+            bot.reply_to(message, "🟢 **Bot Started Silently!**")
             return
 
-    # Check if Bot is Stopped for normal users
     if is_bot_stopped and not is_owner(message.from_user):
         bot.reply_to(message, "🛠️ **Bot is under maintenance.** Access restricted by owner.")
         return
@@ -165,7 +160,6 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, welcome_text, reply_markup=main_menu())
 
     elif text == "🎁 REFER & EARN":
-        # HAR USER KA ALAG UNIQUE REFERRAL LINK
         unique_referral_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
         ref_text = (
             "🎁 **REFER & EARN SYSTEM**\n\n"
@@ -222,4 +216,4 @@ def process_user_uid(message, region):
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=10)
-        
+    
