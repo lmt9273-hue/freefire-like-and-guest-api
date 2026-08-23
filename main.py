@@ -229,7 +229,23 @@ def owner_click(message):
 def help_click(message):
     bot.send_message(message.chat.id, "📖 Use **⭐ FREE LIKES** button to get instant likes, or buy VIP for unlimited access!", parse_mode="Markdown")
 
+from flask import Flask
+import threading
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is Alive & Running 24/7!"
+
+def run_web():
+    app.run(host='0.0.0.0', port=8080)
+
 if __name__ == "__main__":
+    t = threading.Thread(target=run_web)
+    t.start()
+    
     print("Bot is running in Polling Mode...")
     bot.infinity_polling(skip_pending=True)
+    
     
