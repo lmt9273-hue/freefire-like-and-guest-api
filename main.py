@@ -1,8 +1,6 @@
 import os
-import io
 import telebot
 import requests
-import qrcode
 import urllib.parse
 from threading import Thread
 from flask import Flask
@@ -59,27 +57,13 @@ def is_owner(user):
 def register_user(message):
     user_ids.add(message.chat.id)
 
-# --- DYNAMIC QR CODE GENERATOR ---
-def generate_dynamic_qr(amount, plan_name):
+# --- DYNAMIC QR CODE API URL GENERATOR ---
+def get_qr_code_url(amount, plan_name):
     encoded_name = urllib.parse.quote(UPI_NAME)
     encoded_note = urllib.parse.quote(f"Plan: {plan_name}")
     upi_payload = f"upi://pay?pa={UPI_ID}&pn={encoded_name}&am={amount}&cu=INR&tn={encoded_note}"
-    
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=2,
-    )
-    qr.add_data(upi_payload)
-    qr.make(fit=True)
-    
-    img = qr.make_image(fill_color="black", back_color="white")
-    bio = io.BytesIO()
-    bio.name = 'qr.png'
-    img.save(bio, 'PNG')
-    bio.seek(0)
-    return bio
+    encoded_payload = urllib.parse.quote(upi_payload)
+    return f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={encoded_payload}"
 
 # --- REAL-TIME FREE FIRE PROFILE DATA FETCH ---
 def get_live_profile_data(uid, region="ind"):
@@ -256,8 +240,7 @@ def handle_qr_callback(call):
     amount = call.data.split("_")[1]
     plan_name = PLANS.get(amount, "VIP Plan")
     
-    # Generate fresh QR Image stream with exact amount
-    qr_img_stream = generate_dynamic_qr(amount, plan_name)
+    qr_url = get_qr_code_url(amount, plan_name)
 
     caption_text = (
         "💳 UPI Payment Details\n\n"
@@ -274,7 +257,7 @@ def handle_qr_callback(call):
 
     bot.send_photo(
         call.message.chat.id, 
-        photo=qr_img_stream, 
+        photo=qr_url, 
         caption=caption_text, 
         reply_markup=markup
     )
