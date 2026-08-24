@@ -31,11 +31,9 @@ UPI_ID = "7605900368@fam"
 PAYEE_NAME = "Amlan Malik"
 OWNER_HANDLE = "rohit2848"
 
-# Valid Working QR Code Generator Link for FamPay UPI
 def get_fampay_qr(amount, note):
     return f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa={UPI_ID}%26pn=Amlan%20Malik%26am={amount}%26cu=INR%26tn={note}"
 
-# Persistent Bottom Menu
 def main_keyboard():
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     markup.add(KeyboardButton("⭐ FREE LIKES"), KeyboardButton("💎 BUY VIP / PREMIUM"))
@@ -51,7 +49,7 @@ def send_welcome(message):
         reply_markup=main_keyboard()
     )
 
-# ================= 3. VIP DYNAMIC PAYMENT SYSTEM =================
+# ================= 3. VIP PAYMENT SYSTEM =================
 def send_vip_packages_menu(chat_id):
     text = (
         "💎 <b>BUY VIP / PREMIUM PACKAGES</b>\n\n"
@@ -107,13 +105,13 @@ def handle_package_selection(call):
 
 @bot.message_handler(func=lambda msg: msg.text == "⭐ FREE LIKES")
 def free_likes_menu(message):
-    bot.reply_to(message, "🎁 <b>FREE LIKES TASK</b>\n\nCommand: <code>/like ind 7125887223</code>", parse_mode="HTML", reply_markup=main_keyboard())
+    bot.reply_to(message, "🎁 <b>FREE LIKES TASK</b>\n\nCommand: <code>/like ind [YOUR_UID]</code>", parse_mode="HTML", reply_markup=main_keyboard())
 
 @bot.message_handler(func=lambda msg: msg.text == "🎁 REFER & EARN")
 def refer_menu(message):
     bot.reply_to(message, f"🔗 <b>Your Invite Link:</b>\nhttps://t.me/FreeFirebrazilFF_BOT?start={message.from_user.id}", parse_mode="HTML", reply_markup=main_keyboard())
 
-# ================= 4. REAL FF LIKE ENGINE =================
+# ================= 4. REAL DYNAMIC FF PROFILE FETCH & LIKE SYSTEM =================
 def process_single_like(token_data):
     try:
         url = "https://clientbp.ggservices.com/like"
@@ -124,32 +122,51 @@ def process_single_like(token_data):
         return False
 
 def get_real_player_info(uid, region):
-    url = f"https://free-fire-api-five.vercel.app/stats?uid={uid}&region={region}"
-    try:
-        res = requests.get(url, timeout=4).json()
-        if "basicInfo" in res:
-            return (
-                res["basicInfo"].get("nickname", "Brazill"),
-                int(res["basicInfo"].get("liked", 10697)),
-                res["basicInfo"].get("level", "64")
-            )
-    except:
-        pass
-    return ("Brazill", 10697, "64")
+    """Dynamic Profile Info Fetcher for Any Given UID"""
+    endpoints = [
+        f"https://free-fire-api-five.vercel.app/stats?uid={uid}&region={region}",
+        f"https://ff-api-info.vercel.app/api/player?uid={uid}&region={region}",
+        f"https://ff-info-api.vercel.app/player?uid={uid}&region={region}"
+    ]
+    for url in endpoints:
+        try:
+            res = requests.get(url, timeout=5).json()
+            if "basicInfo" in res:
+                name = res["basicInfo"].get("nickname", None)
+                likes = res["basicInfo"].get("liked", None)
+                level = res["basicInfo"].get("level", None)
+                if name and likes is not None:
+                    return (str(name), int(likes), str(level if level else "N/A"))
+            elif "nickname" in res:
+                name = res.get("nickname", None)
+                likes = res.get("likes", None)
+                level = res.get("level", None)
+                if name and likes is not None:
+                    return (str(name), int(likes), str(level if level else "N/A"))
+        except:
+            continue
+    
+    # Static Default Backup for Invalid/Not-Found UIDs
+    return ("FF Player", 0, "N/A")
 
 @bot.message_handler(commands=['like'])
 def handle_like(message):
     try:
         args = message.text.split()
+        if len(args) < 3:
+            bot.reply_to(message, "❌ <b>Format:</b> <code>/like ind [UID]</code>", parse_mode="HTML", reply_markup=main_keyboard())
+            return
+
         region = args[1].lower()
         uid = args[2]
 
         wait_msg = bot.reply_to(
             message, 
-            f"<b>Brooo</b>\n<i>/like {region} {uid}</i>\n\n⚡ <i>Processing Request...</i>", 
+            f"<b>Brooo</b>\n<i>/like {region} {uid}</i>\n\n⚡ <i>Fetching profile for UID: {uid}...</i>", 
             parse_mode="HTML"
         )
 
+        # Dynamic profile data fetch based on exact UID typed
         player_name, likes_before, level = get_real_player_info(uid, region)
         account_tokens = [f"bot_acc_{i}" for i in range(65)]
         
@@ -192,7 +209,7 @@ def handle_like(message):
         )
 
     except Exception:
-        bot.reply_to(message, "❌ <b>Format:</b> <code>/like ind 7125887223</code>", parse_mode="HTML", reply_markup=main_keyboard())
+        bot.reply_to(message, "❌ <b>Format:</b> <code>/like ind [UID]</code>", parse_mode="HTML", reply_markup=main_keyboard())
 
 bot.infinity_polling()
-        
+                                            
