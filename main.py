@@ -29,12 +29,13 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 UPI_ID = "7605900368@fam"
 PAYEE_NAME = "Amlan Malik"
-OWNER_HANDLE = "rohit2848"  # Updated Owner Handle
+OWNER_HANDLE = "rohit2848"
 
-# Official FamPay QR Code Image Link
-OFFICIAL_QR_IMAGE = "https://i.ibb.co/3ykMv6M/fampay-qr.jpg" 
+# Valid Working QR Code Generator Link for FamPay UPI
+def get_fampay_qr(amount, note):
+    return f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa={UPI_ID}%26pn=Amlan%20Malik%26am={amount}%26cu=INR%26tn={note}"
 
-# Persistent Keyboard Menu
+# Persistent Bottom Menu
 def main_keyboard():
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     markup.add(KeyboardButton("⭐ FREE LIKES"), KeyboardButton("💎 BUY VIP / PREMIUM"))
@@ -85,6 +86,8 @@ def handle_package_selection(call):
     bot.answer_callback_query(call.id)
     _, amount, plan_days = call.data.split("_")
     
+    qr_url = get_fampay_qr(amount, plan_days.replace(" ", ""))
+    
     caption_text = (
         f"📸 <b>UPI Payment Details</b>\n\n"
         f"👤 <b>Name:</b> {PAYEE_NAME}\n"
@@ -97,7 +100,10 @@ def handle_package_selection(call):
     inline = InlineKeyboardMarkup()
     inline.add(InlineKeyboardButton("👑 CONTACT OWNER", url=f"https://t.me/{OWNER_HANDLE}"))
     
-    bot.send_photo(call.message.chat.id, photo=OFFICIAL_QR_IMAGE, caption=caption_text, parse_mode="HTML", reply_markup=inline)
+    try:
+        bot.send_photo(call.message.chat.id, photo=qr_url, caption=caption_text, parse_mode="HTML", reply_markup=inline)
+    except Exception:
+        bot.send_message(call.message.chat.id, caption_text, parse_mode="HTML", reply_markup=inline)
 
 @bot.message_handler(func=lambda msg: msg.text == "⭐ FREE LIKES")
 def free_likes_menu(message):
@@ -107,7 +113,7 @@ def free_likes_menu(message):
 def refer_menu(message):
     bot.reply_to(message, f"🔗 <b>Your Invite Link:</b>\nhttps://t.me/FreeFirebrazilFF_BOT?start={message.from_user.id}", parse_mode="HTML", reply_markup=main_keyboard())
 
-# ================= 4. REAL FF ENGINE (SUCCESS/FAILED COUNTS) =================
+# ================= 4. REAL FF LIKE ENGINE =================
 def process_single_like(token_data):
     try:
         url = "https://clientbp.ggservices.com/like"
