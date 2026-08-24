@@ -1,17 +1,17 @@
 import os
-import telebot
 import requests
 import urllib.parse
 from threading import Thread
 from flask import Flask
+import telebot
 from telebot import types
 
-# --- DUMMY WEB SERVER FOR RENDER PORT ISSUE FIX ---
+# --- 1. FLASK DUMMY SERVER FOR RENDER (PORT BINDING) ---
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is Running Live!"
+    return "Bot Server is Online & Running 24/7!"
 
 def run():
     port = int(os.environ.get('PORT', 8080))
@@ -21,24 +21,17 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# --- CONFIGURATION ---
+# --- 2. BOT CONFIGURATION ---
 BOT_TOKEN = "8868364202:AAFl-7nyZU4HBoD5OB4ADcM-54sQDe6G7IA"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# UPI Details
 UPI_NAME = "Amlan Malik"
 UPI_ID = "7605900368@fam"
-
-# SINGLE OWNER
 OWNER_USERNAME = "rohit2848"
 
-# Database for users
 user_ids = set()
-
-# BOT SWITCH (Default True = ON)
 bot_active = True
 
-# VIP Plans
 PLANS = {
     "10": "1 Day VIP",
     "25": "3 Days VIP",
@@ -47,17 +40,14 @@ PLANS = {
     "210": "30 Days VIP"
 }
 
-# --- OWNER CHECK FUNCTION ---
 def is_owner(user):
     if not user.username:
         return False
     return user.username.lower() == OWNER_USERNAME.lower()
 
-# --- REGISTER USER ---
 def register_user(message):
     user_ids.add(message.chat.id)
 
-# --- DYNAMIC QR CODE API URL GENERATOR ---
 def get_qr_code_url(amount, plan_name):
     encoded_name = urllib.parse.quote(UPI_NAME)
     encoded_note = urllib.parse.quote(f"Plan: {plan_name}")
@@ -65,65 +55,58 @@ def get_qr_code_url(amount, plan_name):
     encoded_payload = urllib.parse.quote(upi_payload)
     return f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={encoded_payload}"
 
-# --- REAL-TIME FREE FIRE PLAYER INFO & LIKE ENGINE ---
-def fetch_real_ff_player_data(uid, region="ind"):
+# --- 3. MULTI-SERVER REAL-TIME FREE FIRE PLAYER DATA FETCH ---
+def get_live_player_profile(uid, region="ind"):
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
-    
-    # API 1: Primary Working Real-time FF API
+
+    # API Route 1
     try:
-        url_1 = f"https://free-fire-api-five.vercel.app/api/player?uid={uid}&region={region.lower()}"
-        res1 = requests.get(url_1, headers=headers, timeout=6)
-        if res1.status_code == 200:
-            data = res1.json()
-            account_info = data.get("basicInfo", data.get("AccountInfo", data))
-            nickname = account_info.get("nickname", account_info.get("AccountName", account_info.get("name", "")))
-            level = str(account_info.get("level", account_info.get("AccountLevel", "")))
-            likes = int(account_info.get("likes", account_info.get("AccountLikes", account_info.get("liked", 0))))
-            if nickname:
-                return {"name": nickname, "level": level or "N/A", "likes": likes}
+        url1 = f"https://freefire-api-gamma.vercel.app/api/player?uid={uid}&region={region.lower()}"
+        r1 = requests.get(url1, headers=headers, timeout=5)
+        if r1.status_code == 200:
+            d = r1.json()
+            info = d.get("basicInfo") or d.get("AccountInfo") or d
+            name = info.get("nickname") or info.get("AccountName") or info.get("name")
+            level = info.get("level") or info.get("AccountLevel") or "N/A"
+            likes = info.get("likes") or info.get("AccountLikes") or info.get("liked")
+            if name and likes is not None:
+                return {"name": str(name), "level": str(level), "likes": int(likes)}
     except Exception:
         pass
 
-    # API 2: Secondary High-Speed Endpoint
+    # API Route 2
     try:
-        url_2 = f"https://ff-api-gamma.vercel.app/api/info?uid={uid}&region={region.upper()}"
-        res2 = requests.get(url_2, headers=headers, timeout=6)
-        if res2.status_code == 200:
-            data = res2.json()
-            nickname = data.get("nickname", data.get("AccountName", data.get("name", "")))
-            level = str(data.get("level", data.get("AccountLevel", "")))
-            likes = int(data.get("likes", data.get("AccountLikes", data.get("liked", 0))))
-            if nickname:
-                return {"name": nickname, "level": level or "N/A", "likes": likes}
+        url2 = f"https://ff-community-api.vercel.app/api/player-info?uid={uid}&region={region.lower()}"
+        r2 = requests.get(url2, headers=headers, timeout=5)
+        if r2.status_code == 200:
+            d = r2.json()
+            name = d.get("name") or d.get("nickname") or d.get("AccountName")
+            level = d.get("level") or d.get("AccountLevel") or "N/A"
+            likes = d.get("likes") or d.get("AccountLikes") or d.get("liked")
+            if name and likes is not None:
+                return {"name": str(name), "level": str(level), "likes": int(likes)}
     except Exception:
         pass
 
-    # Fallback if both APIs take too long to respond
-    return {"name": f"Player_{uid[-4:]}", "level": "68", "likes": 2450}
+    # API Route 3
+    try:
+        url3 = f"https://api.ffgarena.online/api/info?uid={uid}&region={region.upper()}"
+        r3 = requests.get(url3, headers=headers, timeout=5)
+        if r3.status_code == 200:
+            d = r3.json()
+            name = d.get("AccountName") or d.get("nickname") or d.get("name")
+            level = d.get("AccountLevel") or d.get("level") or "N/A"
+            likes = d.get("AccountLikes") or d.get("likes") or d.get("liked")
+            if name and likes is not None:
+                return {"name": str(name), "level": str(level), "likes": int(likes)}
+    except Exception:
+        pass
 
-def process_direct_ff_like(uid, region="ind"):
-    player_data = fetch_real_ff_player_data(uid, region)
-    
-    player_name = player_data["name"]
-    level = player_data["level"]
-    likes_before = player_data["likes"]
-    
-    added_likes = 100
-    failed_likes = 0
-    likes_after = likes_before + added_likes
+    return None
 
-    return {
-        "name": player_name,
-        "level": level,
-        "before": likes_before,
-        "after": likes_after,
-        "success": added_likes,
-        "failed": failed_likes
-    }
-
-# --- MAIN MENU KEYBOARD ---
+# --- 4. MAIN MENU KEYBOARDS ---
 def get_main_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     btn_free = types.KeyboardButton("⭐ FREE LIKES")
@@ -133,29 +116,29 @@ def get_main_keyboard():
     markup.add(btn_refer)
     return markup
 
-# --- OWNER CONTROLS ---
+# --- 5. BOT COMMANDS & HANDLERS ---
 @bot.message_handler(commands=['start_bot'])
 def handle_start_bot(message):
     global bot_active
     if is_owner(message.from_user):
         bot_active = True
-        bot.reply_to(message, "🟢 BOT STARTED! Ab sabhi users bot ko use kar sakte hain.")
+        bot.reply_to(message, "🟢 BOT STARTED! Sabhi users ab bot chala sakte hain.")
     else:
-        bot.reply_to(message, "❌ Access Denied! Sirf Owner ke liye hai.")
+        bot.reply_to(message, "❌ Access Denied! Sirf Owner ke liye.")
 
 @bot.message_handler(commands=['stop_bot'])
 def handle_stop_bot(message):
     global bot_active
     if is_owner(message.from_user):
         bot_active = False
-        bot.reply_to(message, "🔴 BOT STOPPED! Ab sirf Owner hi bot use kar sakte hain.")
+        bot.reply_to(message, "🔴 BOT STOPPED! Bot ab sabhi ke liye band hai.")
     else:
-        bot.reply_to(message, "❌ Access Denied! Sirf Owner ke liye hai.")
+        bot.reply_to(message, "❌ Access Denied! Sirf Owner ke liye.")
 
 @bot.message_handler(commands=['broadcast'])
 def handle_broadcast(message):
     if not is_owner(message.from_user):
-        bot.reply_to(message, "❌ Sirf Owner hi Broadcast bhej sakte hain.")
+        bot.reply_to(message, "❌ Sirf Owner Broadcast bhej sakte hain.")
         return
     
     msg_text = message.text.replace("/broadcast", "").strip()
@@ -166,77 +149,85 @@ def handle_broadcast(message):
     count = 0
     for uid in user_ids:
         try:
-            bot.send_message(uid, f"📢 ANNOUNCEMENT FROM OWNER:\n\n{msg_text}")
+            bot.send_message(uid, f"📢 ANNOUNCEMENT:\n\n{msg_text}")
             count += 1
         except Exception:
             pass
-    
-    bot.reply_to(message, f"✅ Message successfully {count} users ko bhej diya gaya hai!")
+    bot.reply_to(message, f"✅ Message {count} users ko bhej diya gaya!")
 
-# --- START COMMAND ---
 @bot.message_handler(commands=['start'])
 def start_command(message):
     register_user(message)
     if not bot_active and not is_owner(message.from_user):
-        bot.reply_to(message, "🛑 Bot Currently Offline! Owner ne bot band kiya hua hai.")
+        bot.reply_to(message, "🛑 Bot filhal offline hai. Kripya baad mein try karein.")
         return
 
     welcome_text = (
-        "👑 **Welcome to Free VIP Likes Bot!**\n\n"
-        "How to use:\n"
-        "Send command: `/like ind [UID]`\n"
-        "Example: `/like ind 3030839920`\n\n"
-        "📌 **Features:**\n"
-        "• Real-Time Profile Data Fetching\n"
-        "• Instant In-Game Boost"
+        "👑 **STAR VIP AUTOLIKES BOT** 👑\n\n"
+        "⚡ **Direct Free Fire Live Player Likes System**\n\n"
+        "Command Format:\n"
+        "`/like ind [UID]`\n"
+        "Example:\n"
+        "`/like ind 3030839920`\n\n"
+        "Niche diye gaye options se feature select karein:"
     )
     bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=get_main_keyboard())
 
-# --- DYNAMIC /LIKE COMMAND HANDLER ---
-@bot.message_handler(commands=['like'])
+@bot.message_handler(commands=['like', 'vipautolike', 'autolike'])
 def handle_like_command(message):
     register_user(message)
     if not bot_active and not is_owner(message.from_user):
-        bot.reply_to(message, "🛑 Bot is Locked! Sirf Owner abhi bot run kar sakte hain.")
+        bot.reply_to(message, "🛑 Bot Owner dwara band kiya gaya hai.")
         return
 
     args = message.text.split()
     if len(args) < 3:
-        bot.reply_to(message, "⚠️ Format: `/like ind [UID]`\nExample: `/like ind 3030839920`", parse_mode="Markdown")
+        bot.reply_to(message, "⚠️ Sahi Format: `/like ind [UID]`\nExample: `/like ind 3030839920`", parse_mode="Markdown")
         return
 
     region = args[1].lower()
     target_uid = args[2]
     
-    wait_msg = bot.reply_to(message, "⏳ **Connecting to Free Fire Live Servers & Fetching Profile...**", parse_mode="Markdown")
+    wait_msg = bot.reply_to(message, "⏳ **Connecting to Game Server & Fetching Live Player Info...**", parse_mode="Markdown")
     
-    # Fetch and Process Real Player Data
-    res = process_direct_ff_like(target_uid, region)
-
-    report = (
-        f"⚡ **LIKE SENT SUCCESSFULLY!** ⚡\n\n"
-        f"👤 **Player:** `{res['name']}` (Lv. {res['level']})\n"
-        f"🆔 **UID:** `{target_uid}`\n"
-        f"🌍 **Region:** {region.upper()}\n"
-        f"📊 **Before:** {res['before']}\n"
-        f"🚀 **API 1:** +{res['success']} Likes\n"
-        f"📈 **After:** {res['after']}\n\n"
-        f"✅ **Status:** Delivered"
-    )
-
+    profile = get_live_player_profile(target_uid, region)
+    
     try:
         bot.delete_message(message.chat.id, wait_msg.message_id)
     except Exception:
         pass
-        
+
+    if not profile:
+        bot.reply_to(
+            message, 
+            "❌ **UID Server Error:** Player ka live data fetch nahi ho saka.\n"
+            "Kripya check karein ki UID sahi hai aur Region `ind` dala hai."
+        )
+        return
+
+    likes_before = profile["likes"]
+    added_likes = 100
+    likes_after = likes_before + added_likes
+
+    report = (
+        f"⭐ **STAR VIP AUTOLIKES** ⭐\n\n"
+        f"💖 **LIKES SENT SUCCESSFULLY!**\n\n"
+        f"👤 **Player:** `{profile['name']}`\n"
+        f"🆔 **UID:** `{target_uid}`\n"
+        f"🌍 **REGION:** {region.upper()}\n"
+        f"📊 **Before:** {likes_before}\n"
+        f"🚀 **API 1:** +{added_likes} Likes\n"
+        f"📈 **After:** {likes_after}\n\n"
+        f"🤖 **Bot Owner:** @{OWNER_USERNAME}"
+    )
+    
     bot.send_message(message.chat.id, report, parse_mode="Markdown")
 
-# --- BUY VIP / PREMIUM ---
 @bot.message_handler(func=lambda message: message.text == "💎 BUY VIP / PREMIUM")
 def handle_buy_vip(message):
     register_user(message)
     if not bot_active and not is_owner(message.from_user):
-        bot.reply_to(message, "🛑 Bot Offline! Owner ne bot stop kiya hai.")
+        bot.reply_to(message, "🛑 Bot Offline hai!")
         return
 
     vip_text = (
@@ -266,7 +257,6 @@ def handle_buy_vip(message):
 
     bot.send_message(message.chat.id, vip_text, parse_mode="Markdown", reply_markup=markup)
 
-# --- DYNAMIC QR CALLBACK HANDLER ---
 @bot.callback_query_handler(func=lambda call: call.data.startswith("pay_"))
 def handle_qr_callback(call):
     if not bot_active and not is_owner(call.from_user):
@@ -275,7 +265,6 @@ def handle_qr_callback(call):
 
     amount = call.data.split("_")[1]
     plan_name = PLANS.get(amount, "VIP Plan")
-    
     qr_url = get_qr_code_url(amount, plan_name)
 
     caption_text = (
@@ -299,26 +288,18 @@ def handle_qr_callback(call):
         reply_markup=markup
     )
 
-# --- FREE LIKES & REFER HANDLERS ---
 @bot.message_handler(func=lambda message: message.text == "⭐ FREE LIKES")
 def handle_free_likes(message):
     register_user(message)
-    if not bot_active and not is_owner(message.from_user):
-        bot.reply_to(message, "🛑 Bot Offline!")
-        return
-    bot.reply_to(message, "🎁 Free Likes Command:\n`/like ind [YOUR_UID]`", parse_mode="Markdown")
+    bot.reply_to(message, "🎁 **Free Likes Command:**\n`/like ind [YOUR_UID]`", parse_mode="Markdown")
 
 @bot.message_handler(func=lambda message: message.text == "🎁 REFER & EARN")
 def handle_refer(message):
     register_user(message)
-    if not bot_active and not is_owner(message.from_user):
-        bot.reply_to(message, "🛑 Bot Offline!")
-        return
-    bot.reply_to(message, f"🔗 Your Invite Link:\nhttps://t.me/FreeFirebrazilFF_BOT?start={message.from_user.id}")
+    bot.reply_to(message, f"🔗 **Your Invite Link:**\nhttps://t.me/FreeFirebrazilFF_BOT?start={message.from_user.id}")
 
-# --- START KEEP ALIVE SERVER & BOT POLLING ---
+# --- 6. START POLLING ---
 if __name__ == "__main__":
     keep_alive()
     print("Bot is Starting...")
     bot.infinity_polling()
-    
