@@ -26,11 +26,11 @@ BOT_TOKEN = "8868364202:AAFl-7nyZU4HBoD5OB4ADcM-54sQDe6G7IA"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # UPI Details
-UPI_NAME = "Amlan Malik"
-UPI_ID = "7609900363@fam"
+UPI_NAME = "Amlan malik"
+UPI_ID = "7605900368@fam"
 
-# EXACT TWO OWNERS
-OWNER_USERNAMES = ["Rohitx_2848", "rohit2848"]
+# SINGLE OWNER
+OWNER_USERNAME = "rohit2848"
 
 # Database for users
 user_ids = set()
@@ -49,21 +49,19 @@ PLANS = {
 
 # --- OWNER CHECK FUNCTION ---
 def is_owner(user):
-    username = user.username
-    if not username:
+    if not user.username:
         return False
-    return username.lower() in [o.lower() for o in OWNER_USERNAMES]
+    return user.username.lower() == OWNER_USERNAME.lower()
 
 # --- REGISTER USER ---
 def register_user(message):
     user_ids.add(message.chat.id)
 
-# --- DYNAMIC UPI QR GENERATOR ---
-def generate_dynamic_qr(upi_id, name, amount, plan_name):
-    encoded_name = urllib.parse.quote(name)
+# --- DYNAMIC UPI PAYMENT LINK GENERATOR ---
+def generate_upi_link(amount, plan_name):
+    encoded_name = urllib.parse.quote(UPI_NAME)
     encoded_note = urllib.parse.quote(f"Plan: {plan_name}")
-    upi_url = f"upi://pay?pa={upi_id}&pn={encoded_name}&am={amount}&cu=INR&tn={encoded_note}"
-    return f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={urllib.parse.quote(upi_url)}"
+    return f"upi://pay?pa={UPI_ID}&pn={encoded_name}&am={amount}&cu=INR&tn={encoded_note}"
 
 # --- REAL-TIME FREE FIRE PROFILE DATA FETCH ---
 def get_live_profile_data(uid, region="ind"):
@@ -103,34 +101,34 @@ def handle_start_bot(message):
     global bot_active
     if is_owner(message.from_user):
         bot_active = True
-        bot.reply_to(message, "🟢 *BOT STARTED!* Ab sabhi users bot ko use kar sakte hain.", parse_mode='Markdown')
+        bot.reply_to(message, "🟢 BOT STARTED! Ab sabhi users bot ko use kar sakte hain.")
     else:
-        bot.reply_to(message, "❌ *Access Denied!* Sirf Owners ke liye hai.")
+        bot.reply_to(message, "❌ Access Denied! Sirf Owner ke liye hai.")
 
 @bot.message_handler(commands=['stop_bot'])
 def handle_stop_bot(message):
     global bot_active
     if is_owner(message.from_user):
         bot_active = False
-        bot.reply_to(message, "🔴 *BOT STOPPED!* Ab sirf Owners hi bot use kar sakte hain.", parse_mode='Markdown')
+        bot.reply_to(message, "🔴 BOT STOPPED! Ab sirf Owner hi bot use kar sakte hain.")
     else:
-        bot.reply_to(message, "❌ *Access Denied!* Sirf Owners ke liye hai.")
+        bot.reply_to(message, "❌ Access Denied! Sirf Owner ke liye hai.")
 
 @bot.message_handler(commands=['broadcast'])
 def handle_broadcast(message):
     if not is_owner(message.from_user):
-        bot.reply_to(message, "❌ Sirf Owners hi Broadcast bhej sakte hain.")
+        bot.reply_to(message, "❌ Sirf Owner hi Broadcast bhej sakte hain.")
         return
     
     msg_text = message.text.replace("/broadcast", "").strip()
     if not msg_text:
-        bot.reply_to(message, "⚠️ Format: `/broadcast Message`", parse_mode='Markdown')
+        bot.reply_to(message, "⚠️ Format: /broadcast Message")
         return
 
     count = 0
     for uid in user_ids:
         try:
-            bot.send_message(uid, f"📢 *ANNOUNCEMENT FROM OWNER:*\n\n{msg_text}", parse_mode='Markdown')
+            bot.send_message(uid, f"📢 ANNOUNCEMENT FROM OWNER:\n\n{msg_text}")
             count += 1
         except Exception:
             pass
@@ -142,28 +140,27 @@ def handle_broadcast(message):
 def start_command(message):
     register_user(message)
     if not bot_active and not is_owner(message.from_user):
-        bot.reply_to(message, "🛑 *Bot Currently Offline!* Owner ne bot band kiya hua hai.")
+        bot.reply_to(message, "🛑 Bot Currently Offline! Owner ne bot band kiya hua hai.")
         return
 
-    welcome_text = """
-👑 *Welcome to FF LIKE BOT!*
-
-Format: `/like ind [UID]`
-Example: `/like ind 123456789`
-    """
-    bot.send_message(message.chat.id, welcome_text, parse_mode='Markdown', reply_markup=get_main_keyboard())
+    welcome_text = (
+        "👑 Welcome to FF LIKE BOT!\n\n"
+        "Format: /like ind [UID]\n"
+        "Example: /like ind 3030839920"
+    )
+    bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_keyboard())
 
 # --- DYNAMIC /LIKE COMMAND HANDLER ---
 @bot.message_handler(commands=['like'])
 def handle_like_command(message):
     register_user(message)
     if not bot_active and not is_owner(message.from_user):
-        bot.reply_to(message, "🛑 *Bot is Locked!* Sirf Owners abhi bot run kar sakte hain.")
+        bot.reply_to(message, "🛑 Bot is Locked! Sirf Owner abhi bot run kar sakte hain.")
         return
 
     args = message.text.split()
     if len(args) < 3:
-        bot.reply_to(message, "⚠️ *Format:* `/like ind [UID]`\nExample: `/like ind 12345678`", parse_mode='Markdown')
+        bot.reply_to(message, "⚠️ Format: /like ind [UID]\nExample: /like ind 3030839920")
         return
 
     region = args[1].lower()
@@ -178,59 +175,44 @@ def handle_like_command(message):
     success_likes, failed_likes = process_guest_account_likes(target_uid, total_guest_accs)
     likes_after = likes_before + success_likes
 
-    report = f"""
-*{player_name}* (Lv. {level})
-`/like {region} {target_uid}`
+    report = (
+        f"🎮 Player: {player_name} (Lv. {level})\n"
+        f"Command: /like {region} {target_uid}\n\n"
+        f"🚀 BOOSTED LIKES DELIVERED!\n\n"
+        f"🎯 Target UID: {target_uid}\n"
+        f"🌍 Region: {region.upper()}\n"
+        f"💖 Likes Added: +{success_likes}\n"
+        f"📊 Likes Before: {likes_before}\n"
+        f"👑 Likes After: {likes_after}\n"
+        f"⚙️ Accounts Processed: {total_guest_accs}\n"
+        f"✅ Success Likes: {success_likes}\n"
+        f"❌ Failed Likes: {failed_likes}\n\n"
+        f"✅ Status: Direct Game Injected!"
+    )
 
-🚀 *BOOSTED LIKES DELIVERED!*
-
-🎯 *Target UID:* `{target_uid}`
-🌍 *Region:* `{region.upper()}`
-💖 *Likes Added:* `+{success_likes}`
-📊 *Likes Before:* `{likes_before}`
-👑 *Likes After:* `{likes_after}`
-⚙️ *Accounts Processed:* `{total_guest_accs}`
-✅ *Success Likes:* `{success_likes}`
-❌ *Failed Likes:* `{failed_likes}`
-
-✅ *Status: Direct Game Injected!*
-    """
-
-    inline_markup = types.InlineKeyboardMarkup(row_width=2)
-    btn_share = types.InlineKeyboardButton("1. 📢 SHARE", url="https://t.me/share/url?url=Check%20out%20this%20FF%20Like%20Bot")
-    btn_owner1 = types.InlineKeyboardButton("2. 👑 OWNER 1", url=f"https://t.me/{OWNER_USERNAMES[0]}")
-    btn_owner2 = types.InlineKeyboardButton("3. 👑 OWNER 2", url=f"https://t.me/{OWNER_USERNAMES[1]}")
-    btn_buy = types.InlineKeyboardButton("⭐ BUY VIP / PREMIUM", callback_data="pay_10")
-    
-    inline_markup.add(btn_share, btn_owner1)
-    inline_markup.add(btn_owner2, btn_buy)
-
-    bot.send_message(message.chat.id, report, parse_mode='Markdown', reply_markup=inline_markup)
+    bot.send_message(message.chat.id, report)
 
 # --- BUY VIP / PREMIUM ---
 @bot.message_handler(func=lambda message: message.text == "💎 BUY VIP / PREMIUM")
 def handle_buy_vip(message):
     register_user(message)
     if not bot_active and not is_owner(message.from_user):
-        bot.reply_to(message, "🛑 *Bot Offline!* Owner ne bot stop kiya hai.")
+        bot.reply_to(message, "🛑 Bot Offline! Owner ne bot stop kiya hai.")
         return
 
-    vip_text = f"""
-💎 *BUY VIP / PREMIUM PACKAGES*
-
-⚡ *1 Day VIP* = ₹10
-⚡ *3 Days VIP* = ₹25
-⚡ *7 Days VIP* = ₹45
-⚡ *15 Days VIP* = ₹90
-⚡ *30 Days VIP* = ₹210
-
-💳 *UPI Payment Details:*
-👤 *Name:* {UPI_NAME}
-📌 *Plan:* VIP Likes
-🆔 *UPI ID:* `{UPI_ID}`
-
-📷 *Scan QR Code above to pay & send screenshot to Owner!*
-    """
+    vip_text = (
+        "💎 BUY VIP / PREMIUM PACKAGES\n\n"
+        "⚡ 1 Day VIP = ₹10\n"
+        "⚡ 3 Days VIP = ₹25\n"
+        "⚡ 7 Days VIP = ₹45\n"
+        "⚡ 15 Days VIP = ₹90\n"
+        "⚡ 30 Days VIP = ₹210\n\n"
+        "💳 UPI Payment Details:\n"
+        f"👤 Name: {UPI_NAME}\n"
+        "📌 Plan: VIP Likes\n"
+        f"🆔 UPI ID: {UPI_ID}\n\n"
+        "👇 Niche diye gaye buttons se Plan select karke Direct Pay karein:"
+    )
     
     markup = types.InlineKeyboardMarkup(row_width=2)
     btn10 = types.InlineKeyboardButton("₹10 (1 Day)", callback_data="pay_10")
@@ -239,17 +221,13 @@ def handle_buy_vip(message):
     btn90 = types.InlineKeyboardButton("₹90 (15 Days)", callback_data="pay_90")
     btn210 = types.InlineKeyboardButton("₹210 (30 Days)", callback_data="pay_210")
     
-    btn_owner1 = types.InlineKeyboardButton("👑 OWNER 1", url=f"https://t.me/{OWNER_USERNAMES[0]}")
-    btn_owner2 = types.InlineKeyboardButton("👑 OWNER 2", url=f"https://t.me/{OWNER_USERNAMES[1]}")
-    
     markup.add(btn10, btn25)
     markup.add(btn45, btn90)
     markup.add(btn210)
-    markup.add(btn_owner1, btn_owner2)
 
-    bot.send_message(message.chat.id, vip_text, parse_mode='Markdown', reply_markup=markup)
+    bot.send_message(message.chat.id, vip_text, reply_markup=markup)
 
-# --- DYNAMIC QR CALLBACK HANDLER ---
+# --- DYNAMIC UPI PAYMENT LINK CALLBACK ---
 @bot.callback_query_handler(func=lambda call: call.data.startswith("pay_"))
 def handle_qr_callback(call):
     if not bot_active and not is_owner(call.from_user):
@@ -258,45 +236,44 @@ def handle_qr_callback(call):
 
     amount = call.data.split("_")[1]
     plan_name = PLANS.get(amount, "VIP Plan")
-    qr_url = generate_dynamic_qr(UPI_ID, UPI_NAME, amount, plan_name)
+    upi_pay_link = generate_upi_link(amount, plan_name)
     
-    caption_text = f"""
-💳 *UPI Payment Details*
+    pay_text = (
+        f"💳 PAYMENT FOR {plan_name.upper()}\n\n"
+        f"👤 Name: {UPI_NAME}\n"
+        f"📌 Plan: {plan_name}\n"
+        f"💰 Amount: ₹{amount}\n"
+        f"🆔 UPI ID: {UPI_ID}\n\n"
+        "👇 Niche 'CLICK TO PAY' button par click karein, aapka Paytm/PhonePe/GPay app directly open ho jayega. Payment karke Screenshot Owner ko bhejein!"
+    )
 
-👤 *Name:* {UPI_NAME}
-📌 *Plan:* {plan_name}
-💰 *Amount:* ₹{amount}
-🆔 *UPI ID:* `{UPI_ID}`
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    btn_pay = types.InlineKeyboardButton(f"🚀 CLICK TO PAY ₹{amount} DIRECTLY", url=upi_pay_link)
+    btn_owner = types.InlineKeyboardButton("📩 SEND SCREENSHOT TO OWNER", url=f"https://t.me/{OWNER_USERNAME}")
+    markup.add(btn_pay, btn_owner)
 
-📷 *Screenshot bhejin:* @{OWNER_USERNAMES[0]} ya @{OWNER_USERNAMES[1]}
-    """
-    
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    btn_owner1 = types.InlineKeyboardButton("📩 CONTACT OWNER 1", url=f"https://t.me/{OWNER_USERNAMES[0]}")
-    btn_owner2 = types.InlineKeyboardButton("📩 CONTACT OWNER 2", url=f"https://t.me/{OWNER_USERNAMES[1]}")
-    markup.add(btn_owner1, btn_owner2)
-
-    bot.send_photo(call.message.chat.id, qr_url, caption=caption_text, parse_mode='Markdown', reply_markup=markup)
+    bot.send_message(call.message.chat.id, pay_text, reply_markup=markup)
 
 # --- FREE LIKES & REFER HANDLERS ---
 @bot.message_handler(func=lambda message: message.text == "⭐ FREE LIKES")
 def handle_free_likes(message):
     register_user(message)
     if not bot_active and not is_owner(message.from_user):
-        bot.reply_to(message, "🛑 *Bot Offline!*")
+        bot.reply_to(message, "🛑 Bot Offline!")
         return
-    bot.reply_to(message, "🎁 *Free Likes Command:*\n`/like ind [YOUR_UID]`", parse_mode='Markdown')
+    bot.reply_to(message, "🎁 Free Likes Command:\n/like ind [YOUR_UID]")
 
 @bot.message_handler(func=lambda message: message.text == "🎁 REFER & EARN")
 def handle_refer(message):
     register_user(message)
     if not bot_active and not is_owner(message.from_user):
-        bot.reply_to(message, "🛑 *Bot Offline!*")
+        bot.reply_to(message, "🛑 Bot Offline!")
         return
-    bot.reply_to(message, f"🔗 *Your Invite Link:*\nhttps://t.me/FreeFirebrazilFF_BOT?start={message.from_user.id}", parse_mode='Markdown')
+    bot.reply_to(message, f"🔗 Your Invite Link:\nhttps://t.me/FreeFirebrazilFF_BOT?start={message.from_user.id}")
 
 # --- START KEEP ALIVE SERVER & BOT POLLING ---
 if __name__ == "__main__":
     keep_alive()
     print("Bot is Starting...")
     bot.infinity_polling()
+    
