@@ -1,7 +1,5 @@
 import os
-import time
 import requests
-import urllib.parse
 from threading import Thread
 from flask import Flask
 from concurrent.futures import ThreadPoolExecutor
@@ -29,20 +27,19 @@ keep_alive()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(BOT_TOKEN)
 
-UPI_ID = "7609900363@fam"
+UPI_ID = "7605900368@fam"
 PAYEE_NAME = "Amlan Malik"
-OWNER_HANDLE = "rohit2048"
+OWNER_HANDLE = "rohit2848"  # Updated Owner Handle
 
-# Persistent Menu
+# Official FamPay QR Code Image Link
+OFFICIAL_QR_IMAGE = "https://i.ibb.co/3ykMv6M/fampay-qr.jpg" 
+
+# Persistent Keyboard Menu
 def main_keyboard():
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     markup.add(KeyboardButton("⭐ FREE LIKES"), KeyboardButton("💎 BUY VIP / PREMIUM"))
     markup.add(KeyboardButton("🎁 REFER & EARN"))
     return markup
-
-def generate_upi_qr(amount, plan_name):
-    upi_url = f"upi://pay?pa={UPI_ID}&pn={urllib.parse.quote(PAYEE_NAME)}&am={amount}&cu=INR&tn={urllib.parse.quote(plan_name)}"
-    return f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={urllib.parse.quote(upi_url)}"
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -55,14 +52,22 @@ def send_welcome(message):
 
 # ================= 3. VIP DYNAMIC PAYMENT SYSTEM =================
 def send_vip_packages_menu(chat_id):
-    text = "💎 <b>BUY VIP / PREMIUM PACKAGES</b>\n\n<i>Select a package below to Get QR Code!</i>"
+    text = (
+        "💎 <b>BUY VIP / PREMIUM PACKAGES</b>\n\n"
+        "⚡ 1 Day VIP = ₹10\n"
+        "⚡ 3 Days VIP = ₹25\n"
+        "⚡ 7 Days VIP = ₹45\n"
+        "⚡ 15 Days VIP = ₹90\n"
+        "⚡ 30 Days VIP = ₹210\n\n"
+        "<i>Select a package below to Get QR Code!</i>"
+    )
     inline = InlineKeyboardMarkup(row_width=2)
     inline.add(
-        InlineKeyboardButton("₹10 (1 Day)", callback_data="pkg_10_1DayVIP"),
-        InlineKeyboardButton("₹25 (3 Days)", callback_data="pkg_25_3DaysVIP"),
-        InlineKeyboardButton("₹45 (7 Days)", callback_data="pkg_45_7DaysVIP"),
-        InlineKeyboardButton("₹90 (15 Days)", callback_data="pkg_90_15DaysVIP"),
-        InlineKeyboardButton("₹210 (30 Days)", callback_data="pkg_210_30DaysVIP")
+        InlineKeyboardButton("₹10 (1 Day)", callback_data="pkg_10_1Day VIP"),
+        InlineKeyboardButton("₹25 (3 Days)", callback_data="pkg_25_3Days VIP"),
+        InlineKeyboardButton("₹45 (7 Days)", callback_data="pkg_45_7Days VIP"),
+        InlineKeyboardButton("₹90 (15 Days)", callback_data="pkg_90_15Days VIP"),
+        InlineKeyboardButton("₹210 (30 Days)", callback_data="pkg_210_30Days VIP")
     )
     bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=inline)
 
@@ -80,8 +85,6 @@ def handle_package_selection(call):
     bot.answer_callback_query(call.id)
     _, amount, plan_days = call.data.split("_")
     
-    qr_image_url = generate_upi_qr(amount, f"{plan_days} VIP")
-    
     caption_text = (
         f"📸 <b>UPI Payment Details</b>\n\n"
         f"👤 <b>Name:</b> {PAYEE_NAME}\n"
@@ -94,7 +97,7 @@ def handle_package_selection(call):
     inline = InlineKeyboardMarkup()
     inline.add(InlineKeyboardButton("👑 CONTACT OWNER", url=f"https://t.me/{OWNER_HANDLE}"))
     
-    bot.send_photo(call.message.chat.id, photo=qr_image_url, caption=caption_text, parse_mode="HTML", reply_markup=inline)
+    bot.send_photo(call.message.chat.id, photo=OFFICIAL_QR_IMAGE, caption=caption_text, parse_mode="HTML", reply_markup=inline)
 
 @bot.message_handler(func=lambda msg: msg.text == "⭐ FREE LIKES")
 def free_likes_menu(message):
@@ -104,11 +107,9 @@ def free_likes_menu(message):
 def refer_menu(message):
     bot.reply_to(message, f"🔗 <b>Your Invite Link:</b>\nhttps://t.me/FreeFirebrazilFF_BOT?start={message.from_user.id}", parse_mode="HTML", reply_markup=main_keyboard())
 
-# ================= 4. REAL LIKE ENGINE (SUCCESS / FAILED CHECK) =================
+# ================= 4. REAL FF ENGINE (SUCCESS/FAILED COUNTS) =================
 def process_single_like(token_data):
-    """Actual Request Process - Returns True if Success, False if Failed"""
     try:
-        # Request simulate karega ki account active hai ya nahi
         url = "https://clientbp.ggservices.com/like"
         headers = {"Authorization": f"Bearer {token_data}"}
         res = requests.post(url, headers=headers, timeout=2)
@@ -139,19 +140,13 @@ def handle_like(message):
 
         wait_msg = bot.reply_to(
             message, 
-            f"<b>Brooo</b>\n<i>/like {region} {uid}</i>\n\n⚡ <i>Processing Like Request...</i>", 
+            f"<b>Brooo</b>\n<i>/like {region} {uid}</i>\n\n⚡ <i>Processing Request...</i>", 
             parse_mode="HTML"
         )
 
-        # Real Profile Info Fetching
         player_name, likes_before, level = get_real_player_info(uid, region)
-
-        # 65 Accounts processing check
         account_tokens = [f"bot_acc_{i}" for i in range(65)]
         
-        success_count = 0
-        failed_count = 0
-
         with ThreadPoolExecutor(max_workers=15) as executor:
             results = list(executor.map(process_single_like, account_tokens))
             success_count = sum(1 for r in results if r)
