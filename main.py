@@ -1,7 +1,25 @@
+import os
 import telebot
 import requests
 import urllib.parse
+from threading import Thread
+from flask import Flask
 from telebot import types
+
+# --- DUMMY WEB SERVER FOR RENDER PORT ISSUE FIX ---
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is Running Live!"
+
+def run():
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
 
 # --- CONFIGURATION ---
 BOT_TOKEN = "8868364202:AAFl-7nyZU4HBoD5OB4ADcM-54sQDe6G7IA"
@@ -65,7 +83,7 @@ def get_live_profile_data(uid, region="ind"):
 
 # --- GUEST ACCOUNTS EXECUTION SYSTEM ---
 def process_guest_account_likes(uid, total_guest_accs=124):
-    successful_likes = total_guest_accs  # Actual success count delivered
+    successful_likes = total_guest_accs
     failed_likes = total_guest_accs - successful_likes
     return successful_likes, failed_likes
 
@@ -277,6 +295,8 @@ def handle_refer(message):
         return
     bot.reply_to(message, f"🔗 *Your Invite Link:*\nhttps://t.me/FreeFirebrazilFF_BOT?start={message.from_user.id}", parse_mode='Markdown')
 
-print("Bot Active with Connected Token!")
-bot.infinity_polling()
-        
+# --- START KEEP ALIVE SERVER & BOT POLLING ---
+if __name__ == "__main__":
+    keep_alive()
+    print("Bot is Starting...")
+    bot.infinity_polling()
