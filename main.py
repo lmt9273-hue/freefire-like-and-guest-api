@@ -1,22 +1,39 @@
 import os
 import time
 import requests
+from threading import Thread
+from flask import Flask
 from concurrent.futures import ThreadPoolExecutor
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 
+# ==================== 1. FREE WEB SERVER (Render Port Fix) ====================
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is Live and Active!"
+
+def run():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+keep_alive()  # Server Port Bind Kar Jayega (Render Live Ho Jayega)
+
+# ==================== 2. TELEGRAM BOT SETUP ====================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Faster Request Session
 session = requests.Session()
 
-# Dummy Function for Speed (Apni Real API se replace kar sakte ho)
 def process_single_account(acc):
-    time.sleep(0.05)  # Fast processing simulation
+    time.sleep(0.05)
     return True
 
-# Persistent Reply Keyboards (Niche wale permanent buttons)
 def main_keyboard():
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn1 = KeyboardButton("⭐ FREE LIKES")
@@ -33,12 +50,10 @@ def send_welcome(message):
 @bot.message_handler(commands=['like'])
 def handle_like(message):
     try:
-        # Command input: /like ind 7125887223
         args = message.text.split()
         region = args[1].upper()
         uid = args[2]
 
-        # 1. PENDING MESSAGE (Wahi Purana Format)
         wait_msg = bot.reply_to(
             message, 
             f"<b>Brooo</b>\n<i>/like {region.lower()} {uid}</i>\n\n"
@@ -47,16 +62,14 @@ def handle_like(message):
             parse_mode="HTML"
         )
 
-        # 2. MULTITHREADING (Fast 65 Accounts Processing in 1-2 Sec)
-        accounts_list = [f"acc_{i}" for i in range(65)]  # 65 Accounts
+        accounts_list = [f"acc_{i}" for i in range(65)]
         with ThreadPoolExecutor(max_workers=20) as executor:
             results = list(executor.map(process_single_account, accounts_list))
         
         accounts_processed = len(results)
 
-        # 3. FINAL SUCCESS MESSAGE (Purana VIP + Like Counts Setup)
         player_name = "Brooo"
-        likes_sent = 0  # Ya jitne likes add hue
+        likes_sent = 0
         likes_before = 708
         likes_after = 709
         total_likes_now = 709
@@ -76,7 +89,6 @@ def handle_like(message):
             f"✅ <b>Status: Direct Game Injected!</b>"
         )
 
-        # Inline Buttons (Share + Owner + VIP Buy)
         inline_markup = InlineKeyboardMarkup()
         b1 = InlineKeyboardButton("1. 📢 SHARE", url="https://t.me/share/url?url=CheckThisBot")
         b2 = InlineKeyboardButton("2. 👑 OWNER", url="https://t.me/YOUR_USERNAME")
@@ -84,7 +96,6 @@ def handle_like(message):
         b3 = InlineKeyboardButton("⭐ BUY VIP / PREMIUM", callback_data="buy_vip")
         inline_markup.row(b3)
 
-        # Edit Pending Message to Final Output with Keyboard intact
         bot.edit_message_text(
             chat_id=message.chat.id,
             message_id=wait_msg.message_id,
